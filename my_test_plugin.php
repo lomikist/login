@@ -31,6 +31,7 @@ function showForm()
     ';
 }
 
+//adsadssa
 function addDb()
 {
     global $wpdb;
@@ -58,6 +59,7 @@ do_action("acf/save_pot");
 
 add_shortcode("showTable" , "showTable");
 
+// fsdf
 function showTable()
 {
     global $wpdb;
