@@ -7,6 +7,8 @@
 $idFromGet = 0;
 $idFromDb = 0;
 
+//dsadas
+
 if ($_SERVER["REQUEST_METHOD"] == "GET") {
     $idFromGet;
     foreach ($_GET as $key => $value) {
@@ -19,6 +21,8 @@ if ($_SERVER["REQUEST_METHOD"] == "GET") {
         $idFromDb = $value->id;
     }
 };
+
+//sddssd
 
 if(isset($_POST['changeBtn']))
 {
