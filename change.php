@@ -44,6 +44,7 @@ if(isset($_POST['changeBtn']))
     else echo "error";
 };
 
+//just comm
 add_shortcode( 'change', 'changing');
 function changing(){    
     global $idFromDb;
