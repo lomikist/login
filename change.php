@@ -23,6 +23,7 @@ if(isset($_POST['changeBtn']))
             'id'=>$_POST['id'],
         );
 
+
         if($wpdb->update($wpdb->prefix, $arr, $arr_which)){
             echo "data updated";
         }
