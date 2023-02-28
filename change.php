@@ -36,6 +36,7 @@ add_shortcode( 'edit_short', 'changing');
 
 function changing(){
 	$id_from_get = 0;
+    
 	if ($_SERVER["REQUEST_METHOD"] == "GET") {
 
 		global $wpdb;
