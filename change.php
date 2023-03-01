@@ -38,7 +38,6 @@ function changing(){
 	$id_from_get = 0;
     
 	if ($_SERVER["REQUEST_METHOD"] == "GET") {
-
 		global $wpdb;
 
 		foreach ($_GET as $key => $value) {

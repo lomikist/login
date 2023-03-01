@@ -85,18 +85,30 @@ function show_table()
         $real_surname = esc_attr($key->surname);
         $real_email = esc_attr($key->email);
 
-        echo "<tr>
-                <td>$real_id</td>
-                <td>$real_name1</td>
-                <td>$real_surname</td>
-                <td>$real_email</td>
-                <td>
-                    <input type='submit' value = '$real_id' name = '$real_id'>
-                </td>
-            </tr>";
+    echo "<tr>
+            <td>$real_id</td>
+            <td>$real_name1</td>
+            <td>$real_surname</td>
+            <td>$real_email</td>
+            <td>
+                <input type='submit' value = 'edit' name = '$real_id'>
+            </td>
+        </tr>";
     }
-    echo "</table>
+    echo "<input type='submit' value = 'next' name = 'next'>
+        </table>
     </form>";
-
+    
 	return ob_get_clean();
-}?>
+}
+
+function show_next()
+{
+    echo "next";
+}
+
+add_action("admin_post_{$_GET['next']}", "show_next");
+
+do_action("admin_post_{$_GET['next']}");
+
+?>
