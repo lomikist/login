@@ -50,7 +50,7 @@ function changing() {
         <input type='text' name='email' id='email'><br>
 
         <label for='id'>current ID</label>
-        <input type='number' name='id' id='id' value="<?php echo $id_from_get ?>" readonly ><br>
+        <input type='number' name='id' id='id' value="<?php echo $id_from_get ?>" readonly><br>
 
         <input type='submit' name='change_btn' value='submit change'>
     </form>
