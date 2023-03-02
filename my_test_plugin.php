@@ -5,10 +5,11 @@
  */
 global $sum;
 add_shortcode( "log_form_short", "show_form" );
+
 function show_form() {
 	$log_url = site_url( "log_form_short" );
 	ob_start();
-	echo "<form method = 'post' id = 'form' action='" . admin_url( 'admin-post.php' ) . "'>
+	?><form method = 'post' id = 'form' action='<?php echo admin_url( 'admin-post.php' )?>'>
         <label for='name'>Name</label>   
         <input type='hidden' name = 'action' value = 'submit_btn'>
         <input name = 'name' >
@@ -18,11 +19,14 @@ function show_form() {
         <br/>
         <label for='email'>Email</label> 
         <input name = 'email' >
-        <br/>    
+        <br/>
+        <label for='upload_img'>upload img</label>
+        <input type="file" name="upload_img" id="upload_img">
+        <br/>
         <label for='submitBtn'></label>
         <input type = 'submit'>
-        </form>";
-
+        </form>
+<?php
 	return ob_get_clean();
 }
 
