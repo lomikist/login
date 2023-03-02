@@ -52,8 +52,8 @@ add_action( "admin_post_submit_btn", "add_db" );
 add_shortcode( "show_table_short", "show_table" );
 function show_table() {
 	global $wpdb;
-	$last_id = 0;
-	$change_url = site_url( "cahnge_short" );
+	$last_id     = 0;
+	$change_url  = site_url( "cahnge_short" );
 	$arr_from_db = $wpdb->get_results( "SELECT * FROM wp_info WHERE id < 100" );
 	ob_start();
 	?>
@@ -103,22 +103,24 @@ function show_table() {
     <form action="<?php echo admin_url( 'admin-post.php' ) ?>" method='get'>
         <input type='hidden' name='action' value='next_pg'>
         <input type='submit' value='next'>
+        <input type='submit' value='prev'>
     </form>
 	<?php
 	return ob_get_clean();
 }
 
 function show_next() {
+    echo "show_next";
 	global $wpdb;
-	$last_id     = 0;
+	$last_id = 0;
+	$first_id    = (string)((int)$_GET['last_id'] + 1);//cuz last id is the previus previus page last_id
+
 	$arr_from_db = $wpdb->get_results( "SELECT * FROM wp_info WHERE id > '" . $_GET['last_id'] . "'" );
 	?>
     <form action="<?php echo site_url( "cahnge_short" ) ?>" method='get'>
         <table style=border: 1px solid black;>
 			<?php
-			for ( $i = 0;
-			$i < 10;
-			$i ++ ) {
+			for ( $i = 0; $i < 10; $i ++ ) {
 			$real_id      = esc_attr( $arr_from_db[ $i ]->id );
 			$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
 			$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
@@ -146,7 +148,67 @@ function show_next() {
         <input type='hidden' name='last_id' value='<?php echo $last_id ?>'>
         <input type='submit' value='next'>
     </form>
+    <form action='<?php echo admin_url( 'admin-post.php' ) ?>' method='get'>
+        <input type='hidden' name='action' value='prev_pg'>
+        <input type='hidden' name='first_id' value='<?php echo $first_id ?>'>
+        <input type='submit' value='prev'>
+    </form>
 	<?php
-}// show next function bracket
+}// show_next function bracket
+
 add_action( "admin_post_next_pg", 'show_next' );
+
+function show_prev() {
+	echo "show_prev";
+
+	global $wpdb;
+	$first_id    = (int)$_GET['first_id'];
+	$arr_from_db = $wpdb->get_results( "SELECT * FROM wp_info WHERE id < '" . $_GET['first_id'] . "'" );
+
+    $arr_from_db = array_reverse($arr_from_db, true);
+	?>
+    <form action="<?php echo site_url( "cahnge_short" ) ?>" method='get'>
+        <table style=border: 1px solid black;>
+			<?php
+
+            $id_minusten = $first_id - 10;
+
+            for ($i = $first_id; $i > $id_minusten; $i--){
+                $real_id      = esc_attr( $arr_from_db[ $i-2 ]->id );
+                $real_name1   = esc_attr( $arr_from_db[ $i-2 ]->name1 );
+                $real_surname = esc_attr( $arr_from_db[ $i-2 ]->surname );
+                $real_email   = esc_attr( $arr_from_db[ $i-2 ]->email );
+                $first_id      = $real_id;
+                ?>
+                <tr>
+                    <td><?php echo $real_id ?></td>
+                    <td><?php echo $real_name1 ?></td>
+                    <td><?php echo $real_surname ?></td>
+                    <td><?php echo $real_email ?></td>
+                    <td>
+                        <input type='submit' readonly name='edit' value='<?php echo $real_id ?>'>
+                    </td>
+            </tr>
+            <br>
+        </table>
+		<?php
+		} ?> <!--for loop bracket-->
+
+    </form> <!--always use after bracket -->
+    <form action='<?php echo admin_url( 'admin-post.php' ) ?>' method='get'>
+        <input type='hidden' name='action' value='next_pg'>
+        <input type='hidden' name='last_id' value='<?php echo $last_id ?>'>
+        <input type='submit' value='next'>
+    </form>
+    <form action='<?php echo admin_url( 'admin-post.php' ) ?>' method='get'>
+        <input type='hidden' name='action' value='prev_pg'>
+        <input type='hidden' name='first_id' value='<?php echo $first_id ?>'>
+        <input type='submit' value='prev'>
+    </form>
+	<?php
+}
+
+add_action( "admin_post_prev_pg", 'show_prev' );
+
+
 ?>
