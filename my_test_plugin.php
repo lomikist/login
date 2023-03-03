@@ -35,7 +35,8 @@ function add_db() {
 	$name    = sanitize_text_field( $_POST['name'] );
 	$surname = sanitize_text_field( $_POST['surname'] );
 	$email   = sanitize_email( $_POST['email'] );
-	$db_name = $wpdb->prefix;
+	$db_name = $wpdb->prefix.'info';
+
 	if ( strlen( $name ) > 3 && strlen( $surname ) > 5 && strlen( $email ) > 5 ) {
 		$data = array(
 			'name1'   => $name,
@@ -46,6 +47,7 @@ function add_db() {
 			echo "data is added";
 		} else {
 			echo $wpdb->last_error;
+
 		}
 	} else {
 		echo "name shousld be more than 3 sibol , surname 5, email 5";
@@ -117,20 +119,34 @@ function show_next() {
 	echo "show_next";
 	global $wpdb;
 	$last_id  = 0;
-	$first_id = (string) ( (int) $_GET['last_id'] + 1 );//cuz last id is the previus previus page last_id
-	$arr_from_db = $wpdb->get_results( "SELECT * FROM wp_info WHERE id > '" . $_GET['last_id'] . "'" );
-	?>
+    // print_r($_GET);
+    echo ($_GET['last_id'] == '');
+    if($_GET['last_id'] == ''){
+        $first_id = (string) ( (int) $_GET['last_id'] + 1 );//cuz last id is the previus previus page last_id
+        $arr_from_db = $wpdb->get_results( "SELECT * FROM wp_info WHERE id > '" . $_GET['last_id'] . "'" );
+    }else{
+        $first_id = 1;
+        $arr_from_db = $wpdb->get_results( "SELECT * FROM wp_info WHERE id > '" . $_GET['last_id'] . "'" );
+    }
+    ?>
     <form action="<?php echo site_url( "cahnge_short" ) ?>" method='get'>
         <table style=border: 1px solid black;>
 			<?php
-			for ( $i = 0;
-			$i < 10;
-			$i ++ ) {
-			$real_id      = esc_attr( $arr_from_db[ $i ]->id );
-			$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
-			$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
-			$real_email   = esc_attr( $arr_from_db[ $i ]->email );
-			$last_id      = $real_id;
+                for ( $i = 0; $i < 10; $i ++ ) {
+                    //cuz if arr_from_db dosent exist its , anyway he would print something 
+                    if (isset($arr_from_db[ $i ])) {
+                        $real_id      = esc_attr( $arr_from_db[ $i ]->id );
+                        $real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
+                        $real_surname = esc_attr( $arr_from_db[ $i ]->surname );
+                        $real_email   = esc_attr( $arr_from_db[ $i ]->email );
+                        $last_id      = $real_id;
+                    }else{
+                        $real_id      = 'no member';
+                        $real_name1   = '';
+                        $real_surname = '';
+                        $real_email   = '';
+                        $last_id      = 0;
+                    }
 			?>
             <tr>
                 <td><?php echo $real_id ?></td>
@@ -172,15 +188,21 @@ function show_prev() {
         <table style=border: 1px solid black;>
 			<?php
 			$id_minusten = $first_id - 10;
-			for ( $i = $first_id;
-			$i > $id_minusten;
-			$i -- ){
-			$real_id      = esc_attr( $arr_from_db[ $i - 2 ]->id );
-			$real_name1   = esc_attr( $arr_from_db[ $i - 2 ]->name1 );
-			$real_surname = esc_attr( $arr_from_db[ $i - 2 ]->surname );
-			$real_email   = esc_attr( $arr_from_db[ $i - 2 ]->email );
-			$first_id     = $real_id;
-			?>
+			for ( $i = $first_id; $i > $id_minusten; $i-- ){
+                if ($arr_from_db[$i]) {
+                    $real_id      = esc_attr( $arr_from_db[ $i - 2 ]->id );
+                    $real_name1   = esc_attr( $arr_from_db[ $i - 2 ]->name1 );
+                    $real_surname = esc_attr( $arr_from_db[ $i - 2 ]->surname );
+                    $real_email   = esc_attr( $arr_from_db[ $i - 2 ]->email );
+                    $first_id     = $real_id;
+                }else {
+                    $real_id      = 'no member';
+                    $real_name1   = '';
+                    $real_surname = '';
+                    $real_email   = '';
+                    $last_id      = 0;
+                }
+?>
             <tr>
                 <td><?php echo $real_id ?></td>
                 <td><?php echo $real_name1 ?></td>
