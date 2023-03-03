@@ -66,12 +66,13 @@ function show_table() {
     <form action='<?php echo $change_url ?>' method='get'>
         <table style=border: 1px solid black;>
 			<?php
-			if ( count( $arr_from_db ) >= 10 ) {
-				for ( $i = 0; $i < 10; $i ++ ) {
+			if ( count( $arr_from_db ) >= 5 ) {
+				for ( $i = 0; $i < 5; $i ++ ) {
 					$real_id      = esc_attr( $arr_from_db[ $i ]->id );
 					$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
 					$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
 					$real_email   = esc_attr( $arr_from_db[ $i ]->email );
+                    echo 1;
 					?>
                     <tr>
                         <td><?php echo $real_id ?></td>
@@ -91,6 +92,7 @@ function show_table() {
 					$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
 					$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
 					$real_email   = esc_attr( $arr_from_db[ $i ]->email );
+
 					?>
                     <tr>
                         <td><?php echo $real_id ?></td>
@@ -103,13 +105,15 @@ function show_table() {
                     </tr>
 				<?php }
 			} ?>
+
             <input type='hidden' name='last_id' value='<?php echo $last_id ?>'>
         </table>
     </form>
     <form action="<?php echo admin_url( 'admin-post.php' ) ?>" method='get'>
         <input type='hidden' name='action' value='next_pg'>
+        <input type='hidden' name='last_id' value='<?php echo $last_id ?>'>
         <input type='submit' value='next'>
-        <input type='submit' value='prev'>
+<!--        <input type='submit' value='prev' >-->
     </form>
 	<?php
 	return ob_get_clean();
@@ -125,16 +129,16 @@ function show_next() {
         $first_id = (string) ( (int) $_GET['last_id'] + 1 );//cuz last id is the previus previus page last_id
         $arr_from_db = $wpdb->get_results( "SELECT * FROM wp_info WHERE id > '" . $_GET['last_id'] . "'" );
     }else{
-        $first_id = 1;
+        $first_id = $_GET['last_id'];
         $arr_from_db = $wpdb->get_results( "SELECT * FROM wp_info WHERE id > '" . $_GET['last_id'] . "'" );
     }
     ?>
-    <form action="<?php echo site_url( "cahnge_short" ) ?>" method='get'>
+    <form action="<?php echo site_url( "edit_short" ) ?>" method='get'>
         <table style=border: 1px solid black;>
 			<?php
-                for ( $i = 0; $i < 10; $i ++ ) {
+                for ( $i = 0; $i < 5; $i ++ ) {
                     //cuz if arr_from_db dosent exist its , anyway he would print something 
-                    if (isset($arr_from_db[ $i ])) {
+                    if (isset($arr_from_db[ $i ])){
                         $real_id      = esc_attr( $arr_from_db[ $i ]->id );
                         $real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
                         $real_surname = esc_attr( $arr_from_db[ $i ]->surname );
@@ -147,21 +151,21 @@ function show_next() {
                         $real_email   = '';
                         $last_id      = 0;
                     }
-			?>
-            <tr>
-                <td><?php echo $real_id ?></td>
-                <td><?php echo $real_name1 ?></td>
-                <td><?php echo $real_surname ?></td>
-                <td><?php echo $real_email ?></td>
-                <td>
-                    <input type='submit' readonly name='edit' value='<?php echo $real_id ?>'>
-                </td>
+                ?>
+                    <tr>
+                        <td><?php echo $real_id ?></td>
+                        <td><?php echo $real_name1 ?></td>
+                        <td><?php echo $real_surname ?></td>
+                        <td><?php echo $real_email ?></td>
+                        <td>
+                            <input type='submit' readonly name='edit' value='<?php echo $real_id ?>'>
+                        </td>
 
-            </tr>
-            <br>
-        </table>
+                    </tr>
+                    <br>
+                </table>
 		<?php
-		} ?> <!--for loop bracket-->
+		    } ?> <!--for loop bracket-->
 
     </form> <!--always use after bracket -->
     <form action='<?php echo admin_url( 'admin-post.php' ) ?>' method='get'>
@@ -177,30 +181,33 @@ function show_next() {
 	<?php
 }// show_next function bracket
 add_action( "admin_post_next_pg", 'show_next' );
+
 function show_prev() {
 	echo "show_prev";
 	global $wpdb;
-	$first_id    = (int) $_GET['first_id'];
-	$arr_from_db = $wpdb->get_results( "SELECT * FROM wp_info WHERE id < '" . $_GET['first_id'] . "'" );
-	$arr_from_db = array_reverse( $arr_from_db, true );
+
+	$last_id    = (int) $_GET['first_id'];
+
+	$arr_from_db = $wpdb->get_results( "SELECT * FROM wp_info WHERE id <= $last_id" );
+	$arr_from_db = array_reverse( $arr_from_db );
 	?>
     <form action="<?php echo site_url( "cahnge_short" ) ?>" method='get'>
         <table style=border: 1px solid black;>
 			<?php
-			$id_minusten = $first_id - 10;
-			for ( $i = $first_id; $i > $id_minusten; $i-- ){
-                if ($arr_from_db[$i]) {
-                    $real_id      = esc_attr( $arr_from_db[ $i - 2 ]->id );
-                    $real_name1   = esc_attr( $arr_from_db[ $i - 2 ]->name1 );
-                    $real_surname = esc_attr( $arr_from_db[ $i - 2 ]->surname );
-                    $real_email   = esc_attr( $arr_from_db[ $i - 2 ]->email );
-                    $first_id     = $real_id;
+			for ( $i = 0 ; $i < 5; $i++ ){
+                if (isset($arr_from_db[$i])) {
+                    $real_id      = esc_attr( $arr_from_db[ $i ]->id );
+                    $real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
+                    $real_surname = esc_attr( $arr_from_db[ $i ]->surname );
+                    $real_email   = esc_attr( $arr_from_db[ $i ]->email );
+                    $first_id     = $real_id - 1;
                 }else {
                     $real_id      = 'no member';
                     $real_name1   = '';
                     $real_surname = '';
                     $real_email   = '';
                     $last_id      = 0;
+	                $first_id     = 0;
                 }
 ?>
             <tr>
@@ -230,6 +237,5 @@ function show_prev() {
     </form>
 	<?php
 }
-
 add_action( "admin_post_prev_pg", 'show_prev' );
 ?>
