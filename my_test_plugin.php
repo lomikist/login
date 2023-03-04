@@ -4,7 +4,9 @@
  * Description: this plugin is for saveing a date in date base
  */
 global $sum;
+
 add_shortcode( "log_form_short", "show_form" );
+
 function show_form() {
 	$log_url = site_url( "log_form_short" );
 	ob_start();
@@ -36,6 +38,8 @@ function add_db() {
 	$name    = sanitize_text_field( $_POST['name'] );
 	$surname = sanitize_text_field( $_POST['surname'] );
 	$email   = sanitize_email( $_POST['email'] );
+
+	// echo $img_url;
 	$db_name = $wpdb->prefix . 'info';
 	if ( strlen( $name ) > 3 && strlen( $surname ) > 5 && strlen( $email ) > 5 ) {
 		$data = array(
@@ -47,39 +51,53 @@ function add_db() {
 			echo "data is added";
 		} else {
 			echo $wpdb->last_error;
-
 		}
 	} else {
 		echo "name shousld be more than 3 sibol , surname 5, email 5";
 	}
+	$lastid = $wpdb->insert_id; //above mentioned, user id
+	do_action( 'file_upload', $lastid);
 }
 
 add_action( "admin_post_submit_btn", "add_db" );
-add_action( 'init', 'file_upload' );
-function file_upload() {
-	if ( isset( $_POST['upload_file'] ) ) {
-		$upload = wp_upload_bits( $_FILES['image']['name'], null, file_get_contents( $_FILES['image']['tmp_name'] ) );
-		print_r($upload);
+add_action( 'file_upload', 'file_upload' );
 
-		if ( ! $upload['error'] ) {
-			$filename      = $upload['file'];
-			$wp_filetype   = wp_check_filetype( $filename );
-			$attachment    = array(
-				'post_type'    => $wp_filetype['type'],
-				'post_name'    => sanitize_file_name( $filename ),
-				'post_content' => '',
-				'post_status'  => 'inherit'
-			);
-			$attachment_id = wp_insert_attachment( $attachment, $filename, '111' );
-			if ( ! is_wp_error( $attachment_id ) ) {
-				require_once( ABSPATH . 'wp-admin/includes/image.php' );
-				$attachment_data = wp_generate_attachment_metadata( $attachment_id, $filename );
-			}
-			echo "file uploaded ";
-		} else {
-			echo $upload['error'];
+function file_upload($id) {
+	global $wpdb;
+
+	$upload = wp_upload_bits( $_FILES['image']['name'], null, file_get_contents( $_FILES['image']['tmp_name'] ) );
+
+	if ( ! $upload['error'] ) {
+		$filename      = $upload['file'];
+		$wp_filetype   = wp_check_filetype( $filename );
+		$attachment    = array(
+			'post_type'    => $wp_filetype['type'],
+			'post_name'    => sanitize_file_name( $filename ),
+			'post_content' => '',
+			'post_status'  => 'inherit'
+		);
+		$attachment_id = wp_insert_attachment( $attachment, $filename, '111' );
+		if ( ! is_wp_error( $attachment_id ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/image.php' );
+			$attachment_data = wp_generate_attachment_metadata( $attachment_id, $filename );
 		}
+		echo "file uploaded ";
+	} else {
+		echo $upload['error'];
 	}
+	// here were gonna chaneg user img_url with uploaded current file url
+	$arr = array(
+		'img_src' => $upload['url'],
+	);
+	$arr_which = array(
+		'id' => $id,
+	);
+	if ( $wpdb->update( $wpdb->prefix.'info', $arr, $arr_which ) ) {
+		echo 'image also was uploaded';
+	} else {
+		print_r($wpdb->last_error);
+	}
+	//----------------
 }
 
 add_shortcode( "show_table_short", "show_table" );
@@ -100,6 +118,8 @@ function show_table() {
 					$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
 					$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
 					$real_email   = esc_attr( $arr_from_db[ $i ]->email );
+					$img_url 	  = $arr_from_db[ $i ]->img_src;
+
 					echo 1;
 					?>
                     <tr>
@@ -120,6 +140,7 @@ function show_table() {
 					$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
 					$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
 					$real_email   = esc_attr( $arr_from_db[ $i ]->email );
+					$img_url 	  = $arr_from_db[ $i ]->img_src;
 					?>
                     <tr>
                         <td><?php echo $real_id ?></td>
@@ -129,12 +150,13 @@ function show_table() {
                         <td>
                             <input type='submit' name='edit' value='<?php echo $real_id ?>'>
                         </td>
+						<td><img src="<?php echo $img_url?>" alt="" width='100' height='100' sizes="" srcset=""></td>
                     </tr>
-				<?php }
-			} ?>
+				<?php }?><!--for loop bracket-->
+			<?php }?><!--else bracket-->
 
             <input type='hidden' name='last_id' value='<?php echo $last_id ?>'>
-        </table>
+		</table>
     </form>
     <form action="<?php echo admin_url( 'admin-post.php' ) ?>" method='get'>
         <input type='hidden' name='action' value='next_pg'>
@@ -144,7 +166,7 @@ function show_table() {
     </form>
 	<?php
 	return ob_get_clean();
-}
+}//show_table func bracket 
 
 function show_next() {
 	echo "show_next";
@@ -163,16 +185,16 @@ function show_next() {
     <form method='get' action='<?php echo admin_url( 'admin-post.php' )?>'>
 	<input type='hidden' name='action' value='edit_short'>
         <table style=border: 1px solid black;>
+			<tbody>
 			<?php
-			for ( $i = 0;
-			$i < 5;
-			$i ++ ) {
+			for ( $i = 0; $i < 5; $i ++ ) {
 			//cuz if arr_from_db dosent exist its , anyway he would print something
 			if ( isset( $arr_from_db[ $i ] ) ) {
 				$real_id      = esc_attr( $arr_from_db[ $i ]->id );
 				$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
 				$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
 				$real_email   = esc_attr( $arr_from_db[ $i ]->email );
+				$img_url 	  = $arr_from_db[ $i ]->img_src;
 				$last_id      = $real_id;
 			} else {
 				$real_id      = 'no member';
@@ -190,13 +212,11 @@ function show_next() {
                 <td>
                     <input type='submit' readonly name='edit' value='<?php echo $real_id ?>'>
                 </td>
-
-            </tr>
-            <br>
-        </table>
-		<?php
+				<td><img src="<?php echo $img_url?>" alt="" width='100' height='100' sizes="" srcset=""></td>
+            </tr><br>
+			<?php
 		} ?> <!--for loop bracket-->
-
+        </table>
     </form> <!--always use after bracket -->
     <form action='<?php echo admin_url( 'admin-post.php' ) ?>' method='get'>
         <input type='hidden' name='action' value='next_pg'>
@@ -210,7 +230,9 @@ function show_next() {
     </form>
 	<?php
 }// show_next function bracket
+
 add_action( "admin_post_next_pg", 'show_next' );
+
 function show_prev() {
 	echo "show_prev";
 	global $wpdb;
@@ -222,14 +244,13 @@ function show_prev() {
 	<input type='hidden' name='action' value='edit_short'>
         <table style=border: 1px solid black;>
 			<?php
-			for ( $i = 0;
-			$i < 5;
-			$i ++ ){
+			for ( $i = 0; $i < 5; $i ++ ){
 			if ( isset( $arr_from_db[ $i ] ) ) {
 				$real_id      = esc_attr( $arr_from_db[ $i ]->id );
 				$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
 				$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
 				$real_email   = esc_attr( $arr_from_db[ $i ]->email );
+				$img_url 	  = $arr_from_db[ $i ]->img_src;
 				$first_id     = $real_id - 1;
 			} else {
 				$real_id      = 'no member';
@@ -248,11 +269,12 @@ function show_prev() {
                 <td>
                     <input type='submit' readonly name='edit' value='<?php echo $real_id ?>'>
                 </td>
+				<td><img src="<?php echo $img_url?>" alt="" width='100' height='100'></td>
             </tr>
             <br>
-        </table>
-		<?php
+			<?php
 		} ?> <!--for loop bracket-->
+		</table>
 
     </form> <!--always use after bracket -->
     <form action='<?php echo admin_url( 'admin-post.php' ) ?>' method='get'>
@@ -266,12 +288,10 @@ function show_prev() {
         <input type='submit' value='prev'>
     </form>
 	<?php
-}
+}// show_prev func brackets
 
 add_action( "admin_post_prev_pg", 'show_prev' );
 
-
-// add_shortcode( 'edit_short', 'edit_short' );
 add_action("admin_post_edit_short", "edit_short");
 
 function edit_short() {
@@ -316,8 +336,8 @@ function edit_users(){
 	$name    = sanitize_text_field( $_GET['name'] );
 	$surname = sanitize_text_field( $_GET['surname'] );
 	$email   = sanitize_email( $_GET['email'] );
-	$id 	 = sanitize_file_name( $_GET['id'] );
-	print_r($_GET);
+	$id 	 = sanitize_text_field( $_GET['id'] );
+
 	if ( strlen( $name ) >= 3 && strlen( $surname ) >= 5 && strlen( $email ) >= 5 ) {
 		$arr       = array(
 			'name1'   => $name,
@@ -328,12 +348,17 @@ function edit_users(){
 			'id' => $id,
 		);
 		if ( $wpdb->update( $wpdb->prefix.'info', $arr, $arr_which ) ) {
-			echo "data updated";
+			echo 'data was sucsefully changed';
 		} else {
 			print_r($wpdb->last_error);
 		}
 	} else {
 		echo "name shold be more than 3 sibol , surname 5, email 5";
 	}
+	?>
+	<form action="<?php echo site_url("users")?>" method="get">
+		<input type="submit" value = 'users page'>
+	</form>
+	<?php
 }
 ?>
