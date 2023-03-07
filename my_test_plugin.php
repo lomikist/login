@@ -35,7 +35,6 @@ function add_db() {
 	$name    = sanitize_text_field( $_POST['name'] );
 	$surname = sanitize_text_field( $_POST['surname'] );
 	$email   = sanitize_email( $_POST['email'] );
-	// echo $img_url;
 	$db_name = $wpdb->prefix . 'info';
 	if ( strlen( $name ) > 3 && strlen( $surname ) > 5 && strlen( $email ) > 5 ) {
 		$data = array(
@@ -51,13 +50,18 @@ function add_db() {
 	} else {
 		echo "name shousld be more than 3 sibol , surname 5, email 5";
 	}
-	$lastid = $wpdb->insert_id; //above mentioned, user id
-	file_upload( $lastid );
+    if (count($_FILES) > 0) {
+	    $lastid = $wpdb->insert_id; //above mentioned, user id
+	    file_upload( $lastid );
+    };
 }
 
 add_action( "admin_post_submit_btn", "add_db" );
-//add_action( 'file_upload', 'file_upload' );
+
+
+// this function is adding img in (wp media) and adding img_src in db
 function file_upload( $id ) {
+    print_r(1234);
 	global $wpdb;
 	$upload = wp_upload_bits( $_FILES['image']['name'], null, file_get_contents( $_FILES['image']['tmp_name'] ) );
 	if ( ! $upload['error'] ) {
@@ -356,4 +360,49 @@ function edit_users() {
 	<?php
 }
 
+// JS part --------------------------------------------------------------------
+add_action( 'wp_enqueue_scripts', 'js_script' );
+function js_script() {
+	wp_enqueue_script( 'custom_script', plugin_dir_url( __FILE__ ) . '/my_test_plugin.js', [ 'jquery' ] );
+	wp_localize_script( 'custom_script', 'MYSCRIPT', array(
+		'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+	) );
+}
+
+add_shortcode( 'mtp_js_user_registration', 'mtp_js_user_registration' );
+function mtp_js_user_registration() {
+	$log_url = site_url( "mtp_user_registration" );
+	ob_start();
+	?>
+    <form id="form" enctype="multipart/form-data">
+        <label for="name">Name</label>
+        <input name="name" id="name">
+        <br/>
+        <label for="surname">Surmane</label>
+        <input name="surname" id="surname">
+        <br/>
+        <label for="email">Email</label>
+        <input name="email" id="email">
+        <br/>
+<!--        <label for="upload_img">upload img</label>-->
+<!--        <input type="file" id="file">-->
+<!--        <br/>-->
+        <label for="submitBtn"></label>
+        <button name="upload_file" id="js_submit_btn"> register</button>
+    </form>
+	<?php
+	return ob_get_clean();
+}
+
+//add_action('wp_ajax_js_submit_btn', 'addin_with_js');
+
+add_action( 'wp_ajax_my_ajax_request', 'adding_with_js' );
+add_action( 'wp_ajax_nopriv_my_ajax_request', 'adding_with_js' );
+
+function adding_with_js() {
+	add_db();
+
+}
+
+;
 ?>
