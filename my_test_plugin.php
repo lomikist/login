@@ -57,7 +57,9 @@ function add_db() {
 }
 
 add_action( "admin_post_submit_btn", "add_db" );
+
 // this function is adding img in (wp media) and adding img_src in db
+
 function file_upload( $id ) {
 	print_r( 1234 );
 	global $wpdb;
@@ -152,15 +154,15 @@ function show_table() {
 	return ob_get_clean();
 }//show_table func bracket
 add_shortcode( "mtp_show_users", "show_table" );
-function edit_func() {
+
+function edit_short() {
 	$id_from_get = 0;
 	if ( isset( $_GET['edit'] ) ) {
 		$id_from_get = $_GET['edit'];
 	}
 	ob_start(); ?>
-    <form method="get" action="<?php echo site_url( '/' ) ?>">
-
-        <input type="hidden" name="action" value="edit_users">
+    <form method="get" action="<?php echo admin_url('admin-post.php') ?>">
+        <input type="hidden" name="action" value="edit"><br>
 
         <label for="name">new name </label>
         <input type="text" name="name" id="name"><br>
@@ -180,8 +182,12 @@ function edit_func() {
 	echo ob_get_clean();
 }
 
-add_shortcode( "mtp_edit_users", "edit_func" );
-function edit_users() {
+add_shortcode( "mtp_edit_users", "edit_short" );
+
+
+add_action( "admin_post_edit", "edit_func" );
+
+function edit_func() {
 	global $wpdb;
 	$name    = sanitize_text_field( $_GET['name'] );
 	$surname = sanitize_text_field( $_GET['surname'] );
@@ -197,21 +203,17 @@ function edit_users() {
 			'id' => $id,
 		);
 		if ( $wpdb->update( $wpdb->prefix . 'info', $arr, $arr_which ) ) {
-			echo 'data was sucsefully changed';
+			wp_safe_redirect(site_url('users'));
+
 		} else {
-			print_r( $wpdb->last_error );
+			echo 'somethin went wrong';
 		}
 	} else {
 		echo "name shold be more than 3 sibol , surname 5, email 5";
 	}
-	?>
-    <form action="<?php echo site_url( "users" ) ?>" method="get">
-        <input type="submit" value='users page' class="btn btn-outline-secondary">
-    </form>
-	<?php
 }
 
-add_action( "admin_post_edit_users", "edit_users" );
+
 // JS part --------------------------------------------------------------------
 add_action( 'wp_enqueue_scripts', 'js_script' );
 function js_script() {
