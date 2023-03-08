@@ -35,15 +35,16 @@ function add_db() {
 	$name    = sanitize_text_field( $_POST['name'] );
 	$surname = sanitize_text_field( $_POST['surname'] );
 	$email   = sanitize_email( $_POST['email'] );
-	$db_name = $wpdb->prefix . 'info';
+    $db_name = 'wp_users';
 	if ( strlen( $name ) > 3 && strlen( $surname ) > 5 && strlen( $email ) > 5 ) {
 		$data = array(
-			'name1'   => $name,
-			'surname' => $surname,
-			'email'   => $email
+			'user_login'   => $name,
+			'user_nicename' => $surname,
+			'user_email'   => $email
 		);
 		if ( $wpdb->insert( $db_name, $data ) ) {
 			echo "data is added";
+            wp_safe_redirect(site_url('users'));
 		} else {
 			echo $wpdb->last_error;
 		}
@@ -53,13 +54,12 @@ function add_db() {
 	if ( count( $_FILES ) > 0 ) {
 		$lastid = $wpdb->insert_id; //above mentioned, user id
 		file_upload( $lastid );
+
 	};
 }
 
 add_action( "admin_post_submit_btn", "add_db" );
-
 // this function is adding img in (wp media) and adding img_src in db
-
 function file_upload( $id ) {
 	print_r( 1234 );
 	global $wpdb;
@@ -84,12 +84,12 @@ function file_upload( $id ) {
 	}
 	// here were gonna chaneg user img_url with uploaded current file url
 	$arr       = array(
-		'img_src' => $upload['url'],
+		'user_url' => $upload['url'],
 	);
 	$arr_which = array(
 		'id' => $id,
 	);
-	if ( $wpdb->update( 'wp_info', $arr, $arr_which ) ) {
+	if ( $wpdb->update( 'wp_users', $arr, $arr_which ) ) {
 		echo 'image also was uploaded';
 	} else {
 		print_r( $wpdb->last_error );
@@ -101,15 +101,15 @@ function show_table() {
 	global $wpdb;
 	if ( isset( $_GET['last_id'] ) ) {
 		$last_id          = $_GET['last_id'];
-		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_info` WHERE id <= %d", $last_id );
+		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_users` WHERE ID <= %d", $last_id );
 		$arr_from_db      = $wpdb->get_results( $show_users_query );
 		$arr_from_db      = array_slice( $arr_from_db, count( $arr_from_db ) - 5, count( $arr_from_db ) );
 	} elseif ( isset( $_GET['first_id'] ) ) {
 		$first_id         = $_GET['first_id'];
-		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_info` WHERE id > %d", $first_id );
+		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_users` WHERE ID > %d", $first_id );
 		$arr_from_db      = $wpdb->get_results( $show_users_query );
 	} else {
-		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_info`" );
+		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_users`" );
 		$arr_from_db      = $wpdb->get_results( $show_users_query );
 		$last_id          = 0;
 	}
@@ -122,19 +122,21 @@ function show_table() {
 			for ( $i = 0; $i < 5; $i ++ ) {
 				?>
                 <tr>
-                    <td><?php echo esc_attr( $arr_from_db[ $i ]->id ) ?></td>
-                    <td><?php echo esc_attr( $arr_from_db[ $i ]->name1 ) ?></td>
-                    <td><?php echo esc_attr( $arr_from_db[ $i ]->surname ) ?></td>
-                    <td><?php echo esc_attr( $arr_from_db[ $i ]->email ) ?></td>
+                    <td><?php echo esc_attr( $arr_from_db[ $i ]->ID ) ?></td>
+                    <td><?php echo esc_attr( $arr_from_db[ $i ]->user_login ) ?></td>
+                    <td><?php echo esc_attr( $arr_from_db[ $i ]->user_nicename ) ?></td>
+                    <td><?php echo esc_attr( $arr_from_db[ $i ]->user_email ) ?></td>
                     <td>
-                        <input type="submit" name="edit" value="<?php echo esc_attr( $arr_from_db[ $i ]->id ) ?>">
+                        <input type="submit" name="edit" value="<?php echo esc_attr( $arr_from_db[ $i ]->ID ) ?>">
                     </td>
                     <td>
-                        <img src="<?php echo esc_attr( $arr_from_db[ $i ]->img_src ) ?>" alt="" width="50" height="50" sizes="" srcset="">
+                        <img src="<?php echo ( strlen( $arr_from_db[ $i ]->user_url ) > 0 ) ? esc_attr( $arr_from_db[ $i ]->user_url ) : 'http://localhost/wordpress/wp-content/uploads/2023/03/tomcat.png' ?>"
+                             width="50"
+                             height="50" sizes="" srcset="">
                     </td>
                 </tr>
 				<?php
-				$last_id = esc_attr( $arr_from_db[ $i ]->id );
+				$last_id = esc_attr( $arr_from_db[ $i ]->ID );
 			}
 			?>
         </table>
@@ -154,39 +156,36 @@ function show_table() {
 	return ob_get_clean();
 }//show_table func bracket
 add_shortcode( "mtp_show_users", "show_table" );
-
 function edit_short() {
+
 	$id_from_get = 0;
 	if ( isset( $_GET['edit'] ) ) {
 		$id_from_get = $_GET['edit'];
 	}
 	ob_start(); ?>
-    <form method="get" action="<?php echo admin_url('admin-post.php') ?>">
+    <form method="get" class="form-group" action="<?php echo admin_url( 'admin-post.php' ) ?>">
         <input type="hidden" name="action" value="edit"><br>
 
         <label for="name">new name </label>
-        <input type="text" name="name" id="name"><br>
+        <input type="text" name="name" class="col-sm-2 col-form-label" id="name"><br>
 
         <label for="surname">new surname</label>
-        <input type="text" name="surname" id="surname"><br>
+        <input type="text" name="surname" class="col-sm-2 col-form-label" id="surname"><br>
 
         <label for="email">new email</label>
-        <input type="text" name="email" id="email"><br>
+        <input type="text" name="email" class="col-sm-2 col-form-label" id="email"><br>
 
         <label for="id">current ID</label>
-        <input type="number" name="id" id="id" value="<?php echo $id_from_get ?>" readonly><br>
+        <input type="number" name="id" class="col-sm-2 col-form-label" id="id" value="<?php echo $id_from_get ?>" readonly><br>
 
-        <input type="submit">
+        <input type="submit" class="btn btn-primary">
     </form>
 	<?php
 	echo ob_get_clean();
 }
 
 add_shortcode( "mtp_edit_users", "edit_short" );
-
-
 add_action( "admin_post_edit", "edit_func" );
-
 function edit_func() {
 	global $wpdb;
 	$name    = sanitize_text_field( $_GET['name'] );
@@ -195,15 +194,15 @@ function edit_func() {
 	$id      = sanitize_text_field( $_GET['id'] );
 	if ( strlen( $name ) >= 3 && strlen( $surname ) >= 5 && strlen( $email ) >= 5 ) {
 		$arr       = array(
-			'name1'   => $name,
-			'surname' => $surname,
-			'email'   => $email
+			'user_login'   => $name,
+			'user_nicename' => $surname,
+			'user_email'   => $email
 		);
 		$arr_which = array(
-			'id' => $id,
+			'ID' => $id,
 		);
-		if ( $wpdb->update( $wpdb->prefix . 'info', $arr, $arr_which ) ) {
-			wp_safe_redirect(site_url('users'));
+		if ( $wpdb->update( 'wp_users', $arr, $arr_which ) ) {
+			wp_safe_redirect( site_url( 'users' ) );
 
 		} else {
 			echo 'somethin went wrong';
@@ -212,7 +211,6 @@ function edit_func() {
 		echo "name shold be more than 3 sibol , surname 5, email 5";
 	}
 }
-
 
 // JS part --------------------------------------------------------------------
 add_action( 'wp_enqueue_scripts', 'js_script' );
