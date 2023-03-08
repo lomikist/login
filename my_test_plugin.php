@@ -97,7 +97,6 @@ function file_upload( $id ) {
 	//----------------
 }
 
-add_shortcode( "mtp_show_users", "show_table" );
 function show_table() {
 	global $wpdb;
 	$last_id          = 0;
@@ -108,7 +107,7 @@ function show_table() {
 	?>
     <form method="get" action="<?php echo admin_url( 'admin-post.php' ) ?>">
         <input type="hidden" name="action" value="edit_short">
-        <table style=border: 1px solid black;>
+        <table class="table table-striped table-dark" >
 			<?php
 			if ( count( $arr_from_db ) >= 5 ) {
 				for ( $i = 0; $i < 5; $i ++ ) {
@@ -120,11 +119,11 @@ function show_table() {
 					echo 1;
 					?>
                     <tr>
-                        <td><?php echo $real_id ?></td>
-                        <td><?php echo $real_name1 ?></td>
-                        <td><?php echo $real_surname ?></td>
-                        <td><?php echo $real_email ?></td>
-                        <td>
+                        <td class="bg-success"><?php echo $real_id ?></td>
+                        <td class="bg-primary"><?php echo $real_name1 ?></td>
+                        <td class="bg-success"><?php echo $real_surname ?></td>
+                        <td class="bg-primary"><?php echo $real_email ?></td>
+                        <td class="bg-success">
                             <input type="submit" name="edit" value="<?php echo $real_id ?>">
                         </td>
                         <td><img src="<?php echo $img_url ?>" alt="" width="50" height="50" sizes="" srcset=""></td>
@@ -167,6 +166,8 @@ function show_table() {
 	<?php
 	return ob_get_clean();
 }//show_table func bracket
+add_shortcode( "mtp_show_users", "show_table" );
+
 function show_next() {
 	echo "show_next";
 	global $wpdb;
@@ -231,8 +232,8 @@ function show_next() {
 	<?php
 
 }
-
 add_action( "admin_post_next_pg", 'show_next' );
+
 function show_prev() {
 	echo "show_prev";
 	global $wpdb;
@@ -243,7 +244,7 @@ function show_prev() {
 	?>
     <form method="get" action="<?php echo admin_url( 'admin-post.php' ) ?>">
         <input type="hidden" name="action" value="edit_short">
-        <table style=border: 1px solid black;>
+        <table class="table">
 			<?php
 			if ( isset( $arr_for_show[0] ) ) {
 				$first_id = esc_attr( $arr_for_show[0]->id ) - 1;
@@ -294,7 +295,7 @@ function show_prev() {
 	<?php
 }// show_prev func brackets
 add_action( 'admin_post_prev_pg', 'show_prev' );
-add_action( 'admin_post_edit_short', 'edit_short' );
+
 function edit_short() {
 	$id_from_get = 0;
 	$id_from_get = $_GET['edit'];
@@ -328,8 +329,8 @@ function edit_short() {
 	<?php
 	echo ob_get_clean();
 }
+add_action( 'admin_post_edit_short', 'edit_short' );
 
-add_action( "admin_post_edit_users", "edit_users" );
 function edit_users() {
 	global $wpdb;
 	$name    = sanitize_text_field( $_GET['name'] );
@@ -355,18 +356,23 @@ function edit_users() {
 	}
 	?>
     <form action="<?php echo site_url( "users" ) ?>" method="get">
-        <input type="submit" value='users page'>
+        <input type="submit" value='users page' class="btn btn-outline-secondary">
     </form>
 	<?php
 }
+add_action( "admin_post_edit_users", "edit_users" );
 
 // JS part --------------------------------------------------------------------
 add_action( 'wp_enqueue_scripts', 'js_script' );
+
 function js_script() {
 	wp_enqueue_script( 'custom_script', plugin_dir_url( __FILE__ ) . '/my_test_plugin.js', [ 'jquery' ] );
 	wp_localize_script( 'custom_script', 'MYSCRIPT', array(
 		'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 	) );
+    wp_enqueue_style('style', plugin_dir_url( __FILE__ ).'my_test_plugin.css');
+	wp_enqueue_style( 'bootstrap', 'https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css' );
+
 }
 
 add_shortcode( 'mtp_js_user_registration', 'mtp_js_user_registration' );
@@ -376,19 +382,16 @@ function mtp_js_user_registration() {
 	?>
     <form id="form" enctype="multipart/form-data">
         <label for="name">Name</label>
-        <input name="name" id="name">
-        <br/>
+        <input name="name" id="name"  class="form-control">
         <label for="surname">Surmane</label>
-        <input name="surname" id="surname">
-        <br/>
+        <input name="surname" id="surname"  class="form-control">
         <label for="email">Email</label>
-        <input name="email" id="email">
-        <br/>
+        <input name="email" id="email"  class="form-control" >
 <!--        <label for="upload_img">upload img</label>-->
 <!--        <input type="file" id="file">-->
 <!--        <br/>-->
         <label for="submitBtn"></label>
-        <button name="upload_file" id="js_submit_btn"> register</button>
+        <button name="upload_file" id="js_submit_btn" class="btn btn-primary"> register</button>
     </form>
 	<?php
 	return ob_get_clean();
@@ -401,8 +404,5 @@ add_action( 'wp_ajax_nopriv_my_ajax_request', 'adding_with_js' );
 
 function adding_with_js() {
 	add_db();
-
 }
-
-;
 ?>
