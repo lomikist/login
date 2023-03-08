@@ -99,69 +99,57 @@ function file_upload( $id ) {
 
 function show_table() {
 	global $wpdb;
-	$last_id          = 0;
-	$change_url       = site_url( "cahnge_short" );
-	$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_info` WHERE id < %d", 100 );
-	$arr_from_db      = $wpdb->get_results( $show_users_query );
-	ob_start();
+	if ( isset($_GET['last_id'])) {
+		$last_id = $_GET['last_id'];
+		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_info` WHERE id <= %d", $last_id );
+		$arr_from_db      = $wpdb->get_results( $show_users_query );
+        $arr_from_db      = array_slice($arr_from_db, count($arr_from_db) - 5, count($arr_from_db));
+	}else if ( isset($_GET['first_id'])) {
+		$first_id = $_GET['first_id'];
+		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_info` WHERE id >= %d", $first_id );
+		$arr_from_db      = $wpdb->get_results( $show_users_query );
+	}else {
+		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_info`");
+		$arr_from_db      = $wpdb->get_results( $show_users_query );
+		$last_id = 0;
+	}
+    ob_start();
 	?>
     <form method="get" action="<?php echo admin_url( 'admin-post.php' ) ?>">
         <input type="hidden" name="action" value="edit_short">
         <table class="table table-striped table-dark" >
 			<?php
-			if ( count( $arr_from_db ) >= 5 ) {
 				for ( $i = 0; $i < 5; $i ++ ) {
-					$real_id      = esc_attr( $arr_from_db[ $i ]->id );
-					$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
-					$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
-					$real_email   = esc_attr( $arr_from_db[ $i ]->email );
-					$img_url      = $arr_from_db[ $i ]->img_src;
-					echo 1;
 					?>
                     <tr>
-                        <td class="bg-success"><?php echo $real_id ?></td>
-                        <td class="bg-primary"><?php echo $real_name1 ?></td>
-                        <td class="bg-success"><?php echo $real_surname ?></td>
-                        <td class="bg-primary"><?php echo $real_email ?></td>
-                        <td class="bg-success">
-                            <input type="submit" name="edit" value="<?php echo $real_id ?>">
+                        <td ><?php echo esc_attr( $arr_from_db[ $i ]->id ) ?></td>
+                        <td ><?php echo esc_attr( $arr_from_db[ $i ]->name1 ) ?></td>
+                        <td ><?php echo esc_attr( $arr_from_db[ $i ]->surname ) ?></td>
+                        <td ><?php echo esc_attr( $arr_from_db[ $i ]->email ) ?></td>
+                        <td >
+                            <input type="submit" name="edit" value="<?php echo esc_attr( $arr_from_db[ $i ]->id ) ?>">
                         </td>
-                        <td><img src="<?php echo $img_url ?>" alt="" width="50" height="50" sizes="" srcset=""></td>
+                        <td>
+                            <img src="<?php echo esc_attr( $arr_from_db[ $i ]->img_src) ?>" alt="" width="50" height="50" sizes="" srcset="">
+                        </td>
                     </tr>
 					<?php
-					$last_id = $real_id;
-				}
-			} else {
-			for ( $i = 0;
-			$i < count( $arr_from_db );
-			$i ++ ) {
-			$real_id      = esc_attr( $arr_from_db[ $i ]->id );
-			$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
-			$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
-			$real_email   = esc_attr( $arr_from_db[ $i ]->email );
-			$img_url      = $arr_from_db[ $i ]->img_src;
-			?>
-            <tr>
-                <td><?php echo $real_id ?></td>
-                <td><?php echo $real_name1 ?></td>
-                <td><?php echo $real_surname ?></td>
-                <td><?php echo $real_email ?></td>
-                <td>
-                    <input type="submit" name="edit" value="<?php echo $real_id ?>">
-                </td>
-                <td><img src="<?php echo $img_url ?>" alt="" width="50" height="50" sizes="" srcset=""></td>
-            </tr>
-			<?php } ?><!--for loop bracket-->
-			<?php } ?><!--else bracket-->
-
+					$last_id = esc_attr( $arr_from_db[ $i ]->id );
+			    }
+            ?>
             <input type="hidden" name="last_id" value="<?php echo $last_id ?>">
         </table>
     </form>
-    <form action="<?php echo admin_url( 'admin-post.php' ) ?>" method="get">
+
+    <form action="<?php echo site_url('/users/')?>" method="get">
         <input type="hidden" name="action" value="next_pg">
-        <input type="hidden" name="last_id" value=""<?php echo $last_id ?>">
+        <input type="hidden" name="last_id" value="<?php echo $last_id + 5?>">
         <input type="submit" value="next">
-        <!--        <input type='submit' value='prev' >-->
+    </form>
+    <form action="<?php echo site_url('/users/')?>" method="get">
+        <input type="hidden" name="action" value="prev_pg">
+        <input type="hidden" name="first_id" value="<?php echo $last_id - 10?>">
+        <input type="submit" value="prev">
     </form>
 	<?php
 	return ob_get_clean();
@@ -181,133 +169,22 @@ function show_next() {
 		$first_id    = $_GET['last_id'];
 		$arr_from_db = $wpdb->get_results( $show_users_query );
 	}
-	?>
-    <form method="get" action="<?php echo admin_url( 'admin-post.php' ) ?>">
-        <input type="hidden" name="action" value="edit_short">
-        <table style=border: 1px solid black;>
-            <tbody>
-			<?php
-			for ( $i = 0; $i < 5; $i ++ ) {
-				//cuz if arr_from_db dosent exist its , anyway he would print something
-				if ( isset( $arr_from_db[ $i ] ) ) {
-					$real_id      = esc_attr( $arr_from_db[ $i ]->id );
-					$real_name1   = esc_attr( $arr_from_db[ $i ]->name1 );
-					$real_surname = esc_attr( $arr_from_db[ $i ]->surname );
-					$real_email   = esc_attr( $arr_from_db[ $i ]->email );
-					$img_url      = $arr_from_db[ $i ]->img_src;
-					$last_id      = $real_id;
-				} else {
-					$real_id      = 'no member';
-					$real_name1   = '';
-					$real_surname = '';
-					$real_email   = '';
-					$img_url      = '';
-					$last_id      = 0;
-				}
-				?>
-                <tr>
-                    <td><?php echo $real_id ?></td>
-                    <td><?php echo $real_name1 ?></td>
-                    <td><?php echo $real_surname ?></td>
-                    <td><?php echo $real_email ?></td>
-                    <td>
-                        <input type="submit" readonly name="edit" value="<?php echo $real_id ?>">
-                    </td>
-                    <td><img src="<?php echo $img_url ?>" alt="" width="50" height="50" sizes="" srcset=""></td>
-                </tr><br>
-				<?php
-			} ?> <!--for loop bracket-->
-        </table>
-    </form> <!--always use after bracket -->
-    <form action="<?php echo admin_url( 'admin-post.php' ) ?>" method="get">
-        <input type="hidden" name="action" value="next_pg">
-        <input type="hidden" name="last_id" value="<?php echo $last_id ?>">
-        <input type="submit" value="next">
-    </form>
-    <form action="<?php echo admin_url( 'admin-post.php' ) ?>" method="get">
-        <input type="hidden" name="action" value="prev_pg">
-        <input type="hidden" name="first_id" value="<?php echo $first_id ?>">
-        <input type="submit" value="prev">
-    </form>
-	<?php
-
 }
 add_action( "admin_post_next_pg", 'show_next' );
 
-function show_prev() {
-	echo "show_prev";
-	global $wpdb;
-	$last_id          = (int) $_GET['first_id'];
-	$show_users_query = $wpdb->prepare( "SELECT * FROM wp_info WHERE id <= %d", $last_id );
-	$arr_from_db      = $wpdb->get_results( $show_users_query );
-	$arr_for_show     = array_slice( $arr_from_db, count( $arr_from_db ) - 5, count( $arr_from_db ) );
-	?>
-    <form method="get" action="<?php echo admin_url( 'admin-post.php' ) ?>">
-        <input type="hidden" name="action" value="edit_short">
-        <table class="table">
-			<?php
-			if ( isset( $arr_for_show[0] ) ) {
-				$first_id = esc_attr( $arr_for_show[0]->id ) - 1;
-			}
-			for ( $i = 0; $i < 5; $i ++ ) {
-				if ( isset( $arr_for_show[ $i ] ) ) {
-					$real_id      = esc_attr( $arr_for_show[ $i ]->id );
-					$real_name1   = esc_attr( $arr_for_show[ $i ]->name1 );
-					$real_surname = esc_attr( $arr_for_show[ $i ]->surname );
-					$real_email   = esc_attr( $arr_for_show[ $i ]->email );
-					$img_url      = $arr_for_show[ $i ]->img_src;
-				} else {
-					$real_id      = 'no member';
-					$real_name1   = '';
-					$real_surname = '';
-					$real_email   = '';
-					$img_url      = '';
-					$last_id      = 0;
-					$first_id     = 0;
-				}
-				?>
-                <tr>
-                    <td><?php echo $real_id ?></td>
-                    <td><?php echo $real_name1 ?></td>
-                    <td><?php echo $real_surname ?></td>
-                    <td><?php echo $real_email ?></td>
-                    <td>
-                        <input type="submit" readonly name="edit" value="<?php echo $real_id ?>">
-                    </td>
-                    <td><img src="<?php echo $img_url ?>" alt="" width="50" height="50"></td>
-                </tr>
-                <br>
-				<?php
-			} ?> <!--for loop bracket-->
-        </table>
-
-    </form> <!--always use after bracket -->
-    <form action="<?php echo admin_url( 'admin-post.php' ) ?>" method="get">
-        <input type="hidden" name="action" value="next_pg">
-        <input type="hidden" name="last_id" value=""<?php echo $last_id ?>">
-        <input type="submit" value="next">
-    </form>
-    <form action="<?php echo admin_url( 'admin-post.php' ) ?>" method="get">
-        <input type="hidden" name="action" value="prev_pg">
-        <input type="hidden" name="first_id" value="<?php echo $first_id ?>">
-        <input type="submit" value="prev">
-    </form>
-	<?php
-}// show_prev func brackets
-add_action( 'admin_post_prev_pg', 'show_prev' );
+//function show_prev() {
+//	echo "show_prev";
+//	global $wpdb;
+//	$last_id          = (int) $_GET['first_id'];
+//	$show_users_query = $wpdb->prepare( "SELECT * FROM wp_info WHERE id <= %d", $last_id );
+//	$arr_from_db      = $wpdb->get_results( $show_users_query );
+//	$arr_for_show     = array_slice( $arr_from_db, count( $arr_from_db ) - 5, count( $arr_from_db ) );
+//}// show_prev func brackets
+//add_action( 'admin_post_prev_pg', 'show_prev' );
 
 function edit_short() {
 	$id_from_get = 0;
 	$id_from_get = $_GET['edit'];
-//	global $wpdb;
-//
-//    $show_users_query = $wpdb->prepare("SELECT * FROM `wp_info` WHERE id = %d", $id_from_get);
-//	$row_id = $wpdb->get_results( $show_users_query );
-//
-//	foreach ( $row_id as $key => $value ) {
-//		print_r( "Your current id is - " . $value->id . " write it in input " );
-//		$row_id = $value->id;
-//	}
 	ob_start(); ?>
     <form method="get" action="<?php echo admin_url( 'admin-post.php' ) ?>">
         <input type="hidden" name="action" value="edit_users">
@@ -396,8 +273,6 @@ function mtp_js_user_registration() {
 	<?php
 	return ob_get_clean();
 }
-
-//add_action('wp_ajax_js_submit_btn', 'addin_with_js');
 
 add_action( 'wp_ajax_my_ajax_request', 'adding_with_js' );
 add_action( 'wp_ajax_nopriv_my_ajax_request', 'adding_with_js' );
