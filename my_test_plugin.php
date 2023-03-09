@@ -117,7 +117,7 @@ function show_table() {
 	?>
     <form method="get" action="<?php echo site_url( 'edit' ) ?>">
         <input type="hidden" name="action" value="edit_func">
-        <table class="table table-striped table-dark">
+        <table class="table table-striped table-dark table-hover">
 			<?php
 			for ( $i = 0; $i < 5; $i ++ ) {
 				?>
@@ -127,7 +127,7 @@ function show_table() {
                     <td><?php echo esc_attr( $arr_from_db[ $i ]->user_nicename ) ?></td>
                     <td><?php echo esc_attr( $arr_from_db[ $i ]->user_email ) ?></td>
                     <td>
-                        <input type="submit" name="edit" value="<?php echo esc_attr( $arr_from_db[ $i ]->ID ) ?>">
+                        <input class="btn btn-hover btn-danger" type="submit" name="edit" value="<?php echo esc_attr( $arr_from_db[ $i ]->ID ) ?>">
                     </td>
                     <td>
                         <img src="<?php echo ( strlen( $arr_from_db[ $i ]->user_url ) > 0 ) ? esc_attr( $arr_from_db[ $i ]->user_url ) : 'http://localhost/wordpress/wp-content/uploads/2023/03/tomcat.png' ?>"
@@ -141,17 +141,18 @@ function show_table() {
 			?>
         </table>
     </form>
-
-    <form action="<?php echo site_url( '/users/' ) ?>" method="get">
-        <input type="hidden" name="action" value="next_pg">
-        <input type="hidden" name="last_id" value="<?php echo $last_id + 5 ?>">
-        <input type="submit" value="next">
-    </form>
-    <form action="<?php echo site_url( '/users/' ) ?>" method="get">
+    <div class="d-flex flex-row">
+    <form action="<?php echo site_url( '/useres/' ) ?>" method="get">
         <input type="hidden" name="action" value="prev_pg">
         <input type="hidden" name="first_id" value="<?php echo $last_id - 10 ?>">
-        <input type="submit" value="prev">
+        <input type="submit" value="prev" class="btn btn-dark">
     </form>
+    <form action="<?php echo site_url( '/useres/' ) ?>" method="get">
+        <input type="hidden" name="action" value="next_pg">
+        <input type="hidden" name="last_id" value="<?php echo $last_id + 5 ?>">
+        <input type="submit" value="next" class="btn btn-secondary ">
+    </form>
+    </div>
 	<?php
 	return ob_get_clean();
 }//show_table func bracket
@@ -202,7 +203,7 @@ function edit_func() {
 			'ID' => $id,
 		);
 		if ( $wpdb->update( 'wp_users', $arr, $arr_which ) ) {
-			wp_safe_redirect( site_url( 'users' ) );
+			wp_safe_redirect( site_url( 'useres' ) );
 
 		} else {
 			echo 'somethin went wrong';
