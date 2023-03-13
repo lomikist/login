@@ -1,7 +1,7 @@
 jQuery(document).ready(function($) {
     $('#js_submit_btn').click(function (e) {
         let name = $('#name').val();
-        let surname = $('#surname').val();
+        let password = $('#surname').val();
         let email = $('#email').val();
 
         e.preventDefault();
@@ -10,7 +10,7 @@ jQuery(document).ready(function($) {
             data: {
                 action: 'my_ajax_request',
                 name: name,
-                surname: surname,
+                password: password,
                 email: email,
             },
             method: 'POST',

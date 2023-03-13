@@ -3,6 +3,8 @@
  * Plugin Name: my_test_plugin
  * Description: this plugin is for saveing a date in date base
  */
+session_start();
+
 add_shortcode( "mtp_user_registration", "show_form" );
 function show_form() {
 	$log_url = site_url( "mtp_user_registration" );
@@ -17,8 +19,8 @@ function show_form() {
                     <input name="name" class="form-control">
                 </div>
                 <div class="row w-100 p-0">
-                    <label for="surname">Surname</label>
-                    <input name="surname" class="form-control">
+                    <label for="password">Surname</label>
+                    <input name="password" class="form-control">
                 </div>
                 <div class="row w-100 p-0">
                     <label for="email">Email</label>
@@ -39,39 +41,24 @@ function show_form() {
 	return ob_get_clean();
 }
 
+add_action( "admin_post_submit_btn", "add_db" );
 function add_db() {
 	global $wpdb;
 	$name    = sanitize_text_field( $_POST['name'] );
-	$surname = sanitize_text_field( $_POST['surname'] );
+	$password = sanitize_text_field( $_POST['password'] );
 	$email   = sanitize_email( $_POST['email'] );
-	$db_name = 'wp_users';
-	if ( strlen( $name ) > 3 && strlen( $surname ) > 5 && strlen( $email ) > 5 ) {
-		$data = array(
-			'user_login'    => $name,
-			'user_nicename' => $surname,
-			'user_email'    => $email
-		);
-		if ( $wpdb->insert( $db_name, $data ) ) {
-			echo "data is added";
-			wp_safe_redirect( site_url( 'users' ) );
-		} else {
-			echo $wpdb->last_error;
-		}
+//	$db_name = 'wp_users';
+	if ( strlen( $name ) > 3 && strlen( $password ) > 5 && strlen( $email ) > 5 ) {
+		$last_id = wp_create_user($name, $password, $email);
 	} else {
-		echo "name shousld be more than 3 sibol , surname 5, email 5";
+		$last_id = null;
+		echo "name should be more than 3 symbol, password 5, email 5";
 	}
-	if ( count( $_FILES ) > 0 ) {
-		$lastid = $wpdb->insert_id; //above mentioned, user id
-		file_upload( $lastid );
-
-	};
+    file_upload($last_id);
 }
 
-add_action( "admin_post_submit_btn", "add_db" );
 // this function is adding img in (wp media) and adding img_src in db
 function file_upload( $id ) {
-	print_r( 1234 );
-	global $wpdb;
 	$upload = wp_upload_bits( $_FILES['image']['name'], null, file_get_contents( $_FILES['image']['tmp_name'] ) );
 	if ( ! $upload['error'] ) {
 		$filename      = $upload['file'];
@@ -83,7 +70,7 @@ function file_upload( $id ) {
 			'post_status'  => 'inherit'
 		);
 		$attachment_id = wp_insert_attachment( $attachment, $filename, '111' );
-		if ( ! is_wp_error( $attachment_id ) ) {
+		if ( !is_wp_error( $attachment_id ) ) {
 			require_once( ABSPATH . 'wp-admin/includes/image.php' );
 			$attachment_data = wp_generate_attachment_metadata( $attachment_id, $filename );
 		}
@@ -91,23 +78,31 @@ function file_upload( $id ) {
 	} else {
 		echo $upload['error'];
 	}
-	// here were gonna chaneg user img_url with uploaded current file url
-	$arr       = array(
-		'user_url' => $upload['url'],
-	);
-	$arr_which = array(
-		'id' => $id,
-	);
-	if ( $wpdb->update( 'wp_users', $arr, $arr_which ) ) {
-		echo 'image also was uploaded';
+
+    $get_updated =  wp_update_user([
+            'ID' => $id,
+            'user_url' => $upload['url']
+    ]);
+
+	if ( is_wp_error( $get_updated ) ) {
+		echo "Error is here";
 	} else {
-		print_r( $wpdb->last_error );
+		echo "User Email confirm";
 	}
-	//----------------
 }
 
-function show_table() {
+add_shortcode( "mtp_show_users", "show_table" );
+function show_table(): bool|string {
 	global $wpdb;
+
+    if(isset($_SESSION['success'])){
+        ?><script>alert("life id good ");</script><?php
+    }elseif (isset($_SESSION['error'])){
+	    ?><script>alert("<?php echo $_SESSION['error']?>");</script><?php
+    }
+	session_destroy();
+
+    print_r($_SESSION);
 	if ( isset( $_GET['last_id'] ) ) {
 		$last_id          = $_GET['last_id'];
 		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_users` WHERE ID <= %d", $last_id );
@@ -135,8 +130,7 @@ function show_table() {
                             ?>
                             <tr>
                                 <td><?php echo esc_attr( $arr_from_db[ $i ]->ID ) ?></td>
-                                <td><?php echo esc_attr( $arr_from_db[ $i ]->user_login ) ?></td>
-                                <td><?php echo esc_attr( $arr_from_db[ $i ]->user_nicename ) ?></td>
+                                <td><?php echo esc_attr( $arr_from_db[ $i ]->display_name ) ?></td>
                                 <td><?php echo esc_attr( $arr_from_db[ $i ]->user_email ) ?></td>
                                 <td>
                                     <input class="btn btn-hover btn-danger" type="submit" name="edit" value="<?php echo esc_attr( $arr_from_db[ $i ]->ID ) ?>">
@@ -171,7 +165,8 @@ function show_table() {
 	<?php
 	return ob_get_clean();
 }//show_table func bracket
-add_shortcode( "mtp_show_users", "show_table" );
+
+add_shortcode( "mtp_edit_users", "edit_short" );
 function edit_short() {
 
 	$id_from_get = 0;
@@ -188,8 +183,8 @@ function edit_short() {
                     <input class="form-control" type="text" name="name"  id="name">
                 </div>
                 <div class="row w-100 p-0">
-                    <label for="surname">new surname</label>
-                    <input class="form-control" type="text" name="surname" id="surname">
+                    <label for="password">new password</label>
+                    <input class="form-control" type="text" name="password" id="password">
                 </div>
                 <div class="row w-100 p-0">
                     <label for="email">new email</label>
@@ -209,35 +204,37 @@ function edit_short() {
 	return ob_get_clean();
 }
 
-add_shortcode( "mtp_edit_users", "edit_short" );
+add_action( "admin_post_edit", "edit_func" );
 function edit_func() {
+
 	global $wpdb;
 	$name    = sanitize_text_field( $_GET['name'] );
-	$surname = sanitize_text_field( $_GET['surname'] );
+	$password = sanitize_text_field( $_GET['password'] );
 	$email   = sanitize_email( $_GET['email'] );
 	$id      = sanitize_text_field( $_GET['id'] );
-	if ( strlen( $name ) >= 3 && strlen( $surname ) >= 5 && strlen( $email ) >= 5 ) {
-		$arr       = array(
-			'user_login'    => $name,
-			'user_nicename' => $surname,
-			'user_email'    => $email
-		);
-		$arr_which = array(
-			'ID' => $id,
-		);
-		if ( $wpdb->update( 'wp_users', $arr, $arr_which ) ) {
-			wp_safe_redirect( site_url( 'users' ) );
 
+	if ( strlen( $name ) >= 3 && strlen( $password ) >= 5 && strlen( $email ) >= 5 ) {
+		get_userdata( $id );
+		$updated_user_data = wp_update_user([
+                'ID' => $id,
+                'user_email' => $email,
+                'display_name' => $name
+        ]);
+		if ( is_wp_error( $updated_user_data ) ) {
+            $_SESSION['error'] = 'Error' . $updated_user_data->get_error_message();
+			$_SESSION['success'] = null;
 		} else {
-			echo 'somethin went wrong';
+			$_SESSION['success'] = 'updated successfully';
+			$_SESSION['error'] = null;
 		}
+        wp_safe_redirect(site_url('users'));
 	} else {
 		echo "name shold be more than 3 sibol , surname 5, email 5";
 	}
 }
 
-add_action( "admin_post_edit", "edit_func" );
 // JS part --------------------------------------------------------------------
+add_action( 'wp_enqueue_scripts', 'js_script' );
 function js_script() {
 	wp_enqueue_script( 'custom_script', plugin_dir_url( __FILE__ ) . '/my_test_plugin.js', [ 'jquery' ] );
 	wp_localize_script( 'custom_script', 'MYSCRIPT', array(
@@ -247,7 +244,7 @@ function js_script() {
 	wp_enqueue_style( 'bootstrap', 'https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css' );
 }
 
-add_action( 'wp_enqueue_scripts', 'js_script' );
+add_shortcode( 'mtp_js_user_registration', 'mtp_js_user_registration' );
 function mtp_js_user_registration() {
 	$log_url = site_url( "mtp_user_registration" );
 	ob_start();
@@ -260,8 +257,8 @@ function mtp_js_user_registration() {
                     <input name="name" id="name" class="form-control">
                 </div>
                 <div class="row w-100 p-0">
-                    <label for="surname">Surmane</label>
-                    <input name="surname" id="surname" class="form-control">
+                    <label for="password">password</label>
+                    <input name="password" id="password" class="form-control">
                 </div>
                 <div class="row w-100 p-0">
                     <label for="email">Email</label>
@@ -277,9 +274,7 @@ function mtp_js_user_registration() {
 	return ob_get_clean();
 }
 
-add_shortcode( 'mtp_js_user_registration', 'mtp_js_user_registration' );
 add_action( 'wp_ajax_my_ajax_request', 'adding_with_js' );
-add_action( 'wp_ajax_nopriv_my_ajax_request', 'adding_with_js' );
 function adding_with_js() {
 	add_db();
 }
