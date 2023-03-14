@@ -7,12 +7,12 @@
 /**
  * this func is creat a new sesion if it is not exist
  */
-function session_start() {
+function start_session() {
 	if ( ! session_id() ) {
 		session_start();
 	}
 }
-add_action('init', 'session_start');
+add_action('init', 'start_session');
 
 /**
  * @return sortcode
