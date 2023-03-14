@@ -3,9 +3,14 @@
  * Plugin Name: my_test_plugin
  * Description: this plugin is for saveing a date in date base
  */
-session_start();
 
-add_shortcode( "mtp_user_registration", "show_form" );
+if(!session_id()) {
+    session_start();
+}
+/**
+ * @return sortcode
+ * this function for showing users login form
+ */
 function show_form() {
 	$log_url = site_url( "mtp_user_registration" );
 	ob_start();
@@ -40,8 +45,12 @@ function show_form() {
 	<?php
 	return ob_get_clean();
 }
+add_shortcode( "mtp_user_registration", "show_form" );
 
-add_action( "admin_post_submit_btn", "add_db" );
+/**
+ * @return void
+ * this function is taking user data and adding it to db , after that call file_upload
+ */
 function add_db() {
 	global $wpdb;
 	$name    = sanitize_text_field( $_POST['name'] );
@@ -56,8 +65,13 @@ function add_db() {
 	}
     file_upload($last_id);
 }
+add_action( "admin_post_submit_btn", "add_db" );
 
-// this function is adding img in (wp media) and adding img_src in db
+/**
+ * @return void
+ *  this func is taking a last added user id , taking a file data and upload it in wp media ,
+ *  after that changing user url to img url
+ */
 function file_upload( $id ) {
 	$upload = wp_upload_bits( $_FILES['image']['name'], null, file_get_contents( $_FILES['image']['tmp_name'] ) );
 	if ( ! $upload['error'] ) {
@@ -94,7 +108,11 @@ function file_upload( $id ) {
     wp_safe_redirect(site_url('users'));
 }
 
-add_shortcode( "mtp_show_users", "show_table" );
+/**
+ * @return false|string
+ * this function for drawing a users table ,
+ * get data from db and after that generating a table
+ */
 function show_table(){
 	global $wpdb;
 
@@ -105,19 +123,15 @@ function show_table(){
     }
 	session_destroy();
 
-//    print_r($_SESSION);
 	if ( isset( $_GET['last_id'] ) ) {
-		$last_id          = $_GET['last_id'];
-		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_users` WHERE ID <= %d", $last_id );
-		$arr_from_db      = $wpdb->get_results( $show_users_query );
+		$last_id          = esc_attr($_GET['last_id']);
+		$arr_from_db      = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM wp_users WHERE ID <= %d", $last_id ) );
 		$arr_from_db      = array_slice( $arr_from_db, count( $arr_from_db ) - 5, count( $arr_from_db ) );
 	} elseif ( isset( $_GET['first_id'] ) ) {
-		$first_id         = $_GET['first_id'];
-		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_users` WHERE ID > %d", $first_id );
-		$arr_from_db      = $wpdb->get_results( $show_users_query );
+		$first_id         = esc_attr($_GET['first_id']);
+		$arr_from_db      = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM wp_users WHERE ID > %d", $first_id ) );
 	} else {
-		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_users`" );
-		$arr_from_db      = $wpdb->get_results( $show_users_query );
+		$arr_from_db      = $wpdb->get_results( "SELECT * FROM wp_users");
 		$last_id          = 0;
 	}
 	ob_start();
@@ -167,14 +181,19 @@ function show_table(){
    </div>
 	<?php
 	return ob_get_clean();
-}//show_table func bracket
+}
+add_shortcode( "mtp_show_users", "show_table" );
 
-add_shortcode( "mtp_edit_users", "edit_short" );
+/**
+ * @return false|string
+ *  this func take a edit id and generate a form basing a id,
+ *  and sed a request admin-post
+ */
 function edit_short() {
 
 	$id_from_get = 0;
 	if ( isset( $_GET['edit'] ) ) {
-		$id_from_get = $_GET['edit'];
+		$id_from_get = esc_attr($_GET['edit']);
 	}
 	ob_start(); ?>
     <form method="get" enctype="multipart/form-data" action="<?php echo admin_url( 'admin-post.php' ) ?>">
@@ -206,8 +225,12 @@ function edit_short() {
 	<?php
 	return ob_get_clean();
 }
+add_shortcode( "mtp_edit_users", "edit_short" );
 
-add_action( "admin_post_edit", "edit_func" );
+/**
+ * @return void
+ * taking a changed user data and changing that
+ */
 function edit_func() {
 
 	global $wpdb;
@@ -232,12 +255,15 @@ function edit_func() {
 		}
         wp_safe_redirect(site_url('users'));
 	} else {
-		echo "name shold be more than 3 sibol , surname 5, email 5";
+		echo "name should be more than 3 symbol , surname 5, email 5";
 	}
 }
+add_action( "admin_post_edit", "edit_func" );
 
-// JS part --------------------------------------------------------------------
-add_action( 'wp_enqueue_scripts', 'js_script' );
+/**
+ * @return void
+ * this func for assets a script files and style files
+ */
 function js_script() {
 	wp_enqueue_script( 'custom_script', plugin_dir_url( __FILE__ ) . '/my_test_plugin.js', [ 'jquery' ] );
 	wp_localize_script( 'custom_script', 'MYSCRIPT', array(
@@ -246,8 +272,12 @@ function js_script() {
 	wp_enqueue_style( 'style', plugin_dir_url( __FILE__ ) . 'my_test_plugin.css' );
 	wp_enqueue_style( 'bootstrap', 'https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css' );
 }
+add_action( 'wp_enqueue_scripts', 'js_script' );
 
-add_shortcode( 'mtp_js_user_registration', 'mtp_js_user_registration' );
+/**
+ * @return false|string
+ * for generating a registration form
+ */
 function mtp_js_user_registration() {
 	$log_url = site_url( "mtp_user_registration" );
 	ob_start();
@@ -276,10 +306,15 @@ function mtp_js_user_registration() {
 	<?php
 	return ob_get_clean();
 }
+add_shortcode( 'mtp_js_user_registration', 'mtp_js_user_registration' );
 
-add_action( 'wp_ajax_my_ajax_request', 'adding_with_js' );
+/**
+ * @return void
+ * this func call a add_db func witch adding a users in db ,
+ * after then when request are send
+ */
 function adding_with_js() {
 	add_db();
 }
-
+add_action( 'wp_ajax_my_ajax_request', 'adding_with_js' );
 ?>
