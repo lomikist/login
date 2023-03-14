@@ -86,11 +86,10 @@ function file_upload( $id ) {
 		$attachment_id = wp_insert_attachment( $attachment, $filename, '111' );
 		if ( !is_wp_error( $attachment_id ) ) {
 			require_once( ABSPATH . 'wp-admin/includes/image.php' );
-			$attachment_data = wp_generate_attachment_metadata( $attachment_id, $filename );
 		}
-		echo "file uploaded ";
 	} else {
-		echo $upload['error'];
+		$_SESSION['success'] = null;
+		$_SESSION['error'] = $upload['error'];
 	}
 
     $get_updated =  wp_update_user([
@@ -103,7 +102,7 @@ function file_upload( $id ) {
         $_SESSION['error'] = null;
 	} else {
 		$_SESSION['success'] = null;
-		$_SESSION['error'] = "commfirming";
+		$_SESSION['error'] = "error";
     }
     wp_safe_redirect(site_url('users'));
 }
