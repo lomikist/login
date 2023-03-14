@@ -85,14 +85,17 @@ function file_upload( $id ) {
     ]);
 
 	if ( is_wp_error( $get_updated ) ) {
-		echo "Error is here";
+        $_SESSION['success'] = "error";
+        $_SESSION['error'] = null;
 	} else {
-		echo "User Email confirm";
-	}
+		$_SESSION['success'] = null;
+		$_SESSION['error'] = "commfirming";
+    }
+    wp_safe_redirect(site_url('users'));
 }
 
 add_shortcode( "mtp_show_users", "show_table" );
-function show_table(): bool|string {
+function show_table(){
 	global $wpdb;
 
     if(isset($_SESSION['success'])){
@@ -102,7 +105,7 @@ function show_table(): bool|string {
     }
 	session_destroy();
 
-    print_r($_SESSION);
+//    print_r($_SESSION);
 	if ( isset( $_GET['last_id'] ) ) {
 		$last_id          = $_GET['last_id'];
 		$show_users_query = $wpdb->prepare( "SELECT * FROM `wp_users` WHERE ID <= %d", $last_id );
@@ -149,12 +152,12 @@ function show_table(): bool|string {
                 </form>
             </div>
             <div class="row w-100  padding-left-10">
-                <form class="w-50 p-0" action="<?php echo site_url( '/users/' ) ?>" method="get">
+                <form class="w-50 p-0" action="" method="get">
                     <input type="hidden" name="action" value="prev_pg">
                     <input type="hidden" name="first_id" value="<?php echo $last_id - 10 ?>">
                     <input type="submit" value="prev" class="btn btn-dark w-100">
                 </form>
-                <form class="w-50 p-0" action="<?php echo site_url( '/users/' ) ?>" method="get">
+                <form class="w-50 p-0" action="" method="get">
                     <input type="hidden" name="action" value="next_pg">
                     <input type="hidden" name="last_id" value="<?php echo $last_id + 5 ?>">
                     <input type="submit" value="next" class="btn btn-secondary w-100">
