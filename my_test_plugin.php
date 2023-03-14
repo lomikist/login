@@ -10,7 +10,6 @@ if(!session_id()) {
 /**
  * @return sortcode
  * this function for showing users login form
- *
  */
 function show_form() {
 	$log_url = site_url( "mtp_user_registration" );
