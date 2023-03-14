@@ -4,9 +4,16 @@
  * Description: this plugin is for saveing a date in date base
  */
 
-if(!session_id()) {
-    session_start();
+/**
+ * this func is creat a new sesion if it is not exist
+ */
+function session_start() {
+	if ( ! session_id() ) {
+		session_start();
+	}
 }
+add_action('init', 'session_start');
+
 /**
  * @return sortcode
  * this function for showing users login form
