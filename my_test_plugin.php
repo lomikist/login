@@ -195,7 +195,7 @@ function edit_short() {
                 </div>
                 <div class="row w-100 p-0">
                     <label for="id">current ID</label>
-                    <input class="form-control" type="number" name="id" id="id" value="<?php echo $id_from_get ?>" readonly>
+                    <input class="form-control" type="number" name="id" id="id" value="<?php echo esc_attr( $id_from_get ) ?>" readonly>
                 </div>
                 <div class="row w-100 p-0">
                     <input type="submit" class="btn btn-primary ">
