@@ -130,25 +130,37 @@ function file_upload( $id ) {
  * @return false|string
  */
 function show_table() {
-	global $wpdb;
-	if ( isset( $_SESSION['success'] ) ) {
-		?>
-        <script>alert("life id good ");</script><?php
-	} elseif ( isset( $_SESSION['error'] ) ) {
-		?>
-        <script>alert("<?php echo $_SESSION['error']?>");</script><?php
+	if (isset($_SESSION['error'])){
+		?><script> alert( "<?php echo $_SESSION['error'] ?>") </script><?php
+	}
+	else if(isset($_SESSION['success']))
+	{
+		?><script> alert( "<?php echo $_SESSION['success'] ?>") </script><?php
 	}
 	session_destroy();
-	if ( isset( $_GET['last_id'] ) ) {
-		$last_id     = esc_attr( $_GET['last_id'] );
-		$arr_from_db = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM wp_users WHERE ID <= %d", $last_id ) );
-		$arr_from_db = array_slice( $arr_from_db, count( $arr_from_db ) - 5, count( $arr_from_db ) );
-	} elseif ( isset( $_GET['first_id'] ) ) {
-		$first_id    = esc_attr( $_GET['first_id'] );
-		$arr_from_db = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM wp_users WHERE ID > %d", $first_id ) );
-	} else {
-		$arr_from_db = $wpdb->get_results( "SELECT * FROM wp_users" );
-		$last_id     = 0;
+
+	$current_page = $_GET['current'] ?? 0;
+	$row_count = (count_users()['total_users']);
+	$row_per_page = 4;
+	$number_of_page = ceil($row_count / $row_per_page);
+	$initial_page = $current_page * $row_per_page;
+
+	$arr_from_db = json_decode(json_encode(get_users(array( 'offset' => $initial_page,
+	                                                        'number' => $row_per_page,
+	                                                        'orderby' => 'ID',
+	))), true);
+
+	if ($current_page == 0){
+		$prev_pg_i = 0;
+		$next_pg_i = $prev_pg_i + 1;
+
+	}elseif($current_page == $number_of_page - 1){
+		$next_pg_i = $number_of_page - 1;
+		$prev_pg_i = $next_pg_i - 1;
+
+	}else{
+		$prev_pg_i = $current_page - 1;
+		$next_pg_i = $current_page + 1;
 	}
 	ob_start();
 	?>
@@ -159,23 +171,24 @@ function show_table() {
                     <input type="hidden" name="action" value="edit_func">
                     <table class="table table-striped table-dark table-hover">
 						<?php
-						for ( $i = 0; $i < 5; $i ++ ) {
+						foreach ($arr_from_db as $key){
 							?>
                             <tr>
-                                <td><?php echo esc_attr( $arr_from_db[ $i ]->ID ) ?></td>
-                                <td><?php echo esc_attr( $arr_from_db[ $i ]->display_name ) ?></td>
-                                <td><?php echo esc_attr( $arr_from_db[ $i ]->user_email ) ?></td>
+                                <td><?php echo esc_attr( $key[ 'data' ]['ID'] ) ?></td>
+                                <td><?php echo esc_attr( $key[ 'data' ]['display_name'] ) ?></td>
+                                <td><?php echo esc_attr( $key[ 'data' ]['user_email'] ) ?></td>
                                 <td>
-                                    <input class="btn btn-hover btn-danger" type="submit" name="edit" value="<?php echo esc_attr( $arr_from_db[ $i ]->ID ) ?>">
+                                    <input class="btn btn-hover btn-danger" type="submit" name="edit" value="<?php echo esc_attr( $key['data']['ID'] ) ?>">
                                 </td>
                                 <td>
-                                    <img src="<?php echo ( strlen( $arr_from_db[ $i ]->user_url ) > 0 ) ? esc_attr( $arr_from_db[ $i ]->user_url ) : 'http://localhost/wordpress/wp-content/uploads/2023/03/tomcat.jpg' ?>"
+                                    <img src="<?php echo ( strlen( $key['data']['user_url'] ) > 0 ) ? esc_attr( $key['data']['user_url'] ) : 'http://localhost/wordpress/wp-content/uploads/2023/03/tomcat.jpg'
+									?>"
                                          width="50"
                                          height="50" sizes="" srcset="">
                                 </td>
                             </tr>
 							<?php
-							$last_id = esc_attr( $arr_from_db[ $i ]->ID );
+							$last_id = esc_attr( $key[ 'data' ]['ID'] );
 						}
 						?>
                     </table>
@@ -183,14 +196,15 @@ function show_table() {
             </div>
             <div class="row w-100  padding-left-10">
                 <form class="w-50 p-0" action="" method="get">
-                    <input type="hidden" name="action" value="prev_pg">
-                    <input type="hidden" name="first_id" value="<?php echo $last_id - 10 ?>">
-                    <input type="submit" value="prev" class="btn btn-dark w-100">
-                </form>
-                <form class="w-50 p-0" action="" method="get">
-                    <input type="hidden" name="action" value="next_pg">
-                    <input type="hidden" name="last_id" value="<?php echo $last_id + 5 ?>">
-                    <input type="submit" value="next" class="btn btn-secondary w-100">
+                    <!--                        <input type="hidden" name="row" value="--><?php //echo $row; ?><!--">-->
+                    <!--                        <input type="hidden" name="count" value="--><?php //echo $count; ?><!--">-->
+                    <input type="submit" class="btn-primary" name="current" value="<?php echo $prev_pg_i?>">
+					<?php
+					for ($i = 0; $i < $number_of_page; $i++){
+						?><input type="submit" class="btn-primary" name="current" value = '<?php echo $i?>'><?php
+					}
+					?>
+                    <input type="submit" class="btn-primary" name="current" value="<?php echo $next_pg_i?>">
                 </form>
             </div>
         </div>
@@ -272,7 +286,8 @@ function edit_func() {
 		}
 		wp_safe_redirect( site_url( 'users' ) );
 	} else {
-		echo "name should be more than 3 symbol , surname 5, email 5";
+		$_SESSION['error'] = 'name should be more that .....';
+        $_SESSION['success'] = null;
 	}
 }
 add_action( "admin_post_edit", "edit_func" );
