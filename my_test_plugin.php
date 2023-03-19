@@ -21,7 +21,9 @@ add_action( 'init', 'start_session' );
  * @return false|string
  */
 function show_form() {
-	$log_url = site_url( "mtp_user_registration" );
+//	$log_url = site_url( "mtp_user_registration" );
+    $login_nonce = wp_create_nonce('login_nonce');
+
 	ob_start();
 	?>
     <form method="post" id="form" enctype="multipart/form-data" action="<?php echo admin_url( 'admin-post.php' ) ?>">
@@ -47,6 +49,7 @@ function show_form() {
                 <div class="row w-100">
                     <label for="submitBtn"></label>
                     <input type="submit" class="btn btn-primary w-100 " name="upload_file" value="Register">
+                    <input type="hidden" name="login_nonce" value="<?php echo $login_nonce ?>">
                 </div>
             </div>
         </div>
@@ -66,19 +69,27 @@ function add_db() {
 	$name     = sanitize_text_field( $_POST['name'] );
 	$password = sanitize_text_field( $_POST['password'] );
 	$email    = sanitize_email( $_POST['email'] );
-//	$db_name = 'wp_users';
-	if ( strlen( $name ) > 3 && strlen( $password ) > 5 && strlen( $email ) > 5 ) {
-		$last_id = wp_create_user( $name, $password, $email );
-	    $_SESSION['armplugin']['success'] = "you are registered";
+    $be_checked_nonce = $_POST['login_nonce'];
+    $js_be_checked_nonce = $_POST['js_login_nonce'];
+
+    if (isset($_POST['login_nonce']))
+        if(!wp_verify_nonce($be_checked_nonce, 'login_nonce'))
+            die('dont try to hack me');
+    if (isset($_POST['js_login_nonce']))
+        if(!wp_verify_nonce($js_be_checked_nonce, 'js_login_nonce'))
+            die('dont try to hack me');
+
+    if ( strlen( $name ) > 3 && strlen( $password ) > 5 && strlen( $email ) > 5 ) {
+        $last_id = wp_create_user( $name, $password, $email );
+        $_SESSION['armplugin']['success'] = "you are registered";
         $_SESSION['armplugin']['error'] = null;
-        wp_safe_redirect(site_url('users'));
     } else {
-		$last_id = null;
-		$_SESSION['armplugin']['error'] = "name should be more than 3 symbol, password 5, email 5";
-		$_SESSION['armplugin']['success'] = null;
-		wp_safe_redirect(site_url('users'));
-	}
-	file_upload( $last_id );
+        $last_id = null;
+        $_SESSION['armplugin']['error'] = "name should be more than 3 symbol, password 5, email 5";
+        $_SESSION['armplugin']['success'] = null;
+    }
+    wp_safe_redirect(site_url('users'));
+    file_upload( $last_id );
 }
 add_action( "admin_post_submit_btn", "add_db" );
 
@@ -144,7 +155,7 @@ function show_table() {
 
 	$current_page = $_GET['current'] ?? 0;
 	$row_count = count_users()['total_users'];
-	$row_per_page = 2;
+	$row_per_page = 3;
 	$number_of_page = ceil($row_count / $row_per_page);
 	$initial_page = $current_page * $row_per_page;
 
@@ -191,7 +202,7 @@ function show_table() {
 
                     <input type="submit" class="btn-success" name="current" value="<?php echo $current_page == 0 ? 0 : ($current_page == ($number_of_page - 1) ? ($number_of_page - 2) : $current_page - 1)  ?>">
 					<?php
-					for ($i = 0; $i < $number_of_page; $i++){
+					for ($i = 0; $i < $number_of_page; ++$i){
 						?><input type="submit" class="btn-primary" name="current" value = '<?php echo $i?>'><?php
 					}
 					?>
@@ -289,10 +300,13 @@ add_action( "admin_post_edit", "edit_func" );
  * @return void
  */
 function js_script() {
+
 	wp_enqueue_script( 'custom_script', plugin_dir_url( __FILE__ ) . '/my_test_plugin.js', [ 'jquery' ] );
 	wp_localize_script( 'custom_script', 'MYSCRIPT', array(
 		'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+        'nonce' => wp_create_nonce('js_login_nonce')
 	) );
+
 	wp_enqueue_style( 'style', plugin_dir_url( __FILE__ ) . 'my_test_plugin.css' );
 	wp_enqueue_style( 'bootstrap', 'https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css' );
 }
@@ -304,7 +318,7 @@ add_action( 'wp_enqueue_scripts', 'js_script' );
  * @return false|string
  */
 function mtp_js_user_registration() {
-	$log_url = site_url( "mtp_user_registration" );
+//	$log_url = site_url( "mtp_user_registration" );
 	ob_start();
 	?>
     <form id="form" enctype="multipart/form-data">

@@ -12,6 +12,7 @@ jQuery(document).ready(function($) {
                 name: name,
                 password: password,
                 email: email,
+                js_login_nonce: MYSCRIPT.js_login_nonce
             },
             method: 'POST',
             success: function (response) {
