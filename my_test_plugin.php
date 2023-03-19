@@ -69,13 +69,13 @@ function add_db() {
 //	$db_name = 'wp_users';
 	if ( strlen( $name ) > 3 && strlen( $password ) > 5 && strlen( $email ) > 5 ) {
 		$last_id = wp_create_user( $name, $password, $email );
-	    $_SESSION['success'] = "you are registered";
-        $_SESSION['error'] = null;
+	    $_SESSION['armplugin']['success'] = "you are registered";
+        $_SESSION['armplugin']['error'] = null;
         wp_safe_redirect(site_url('users'));
     } else {
 		$last_id = null;
-		$_SESSION['error'] = "name should be more than 3 symbol, password 5, email 5";
-		$_SESSION['success'] = null;
+		$_SESSION['armplugin']['error'] = "name should be more than 3 symbol, password 5, email 5";
+		$_SESSION['armplugin']['success'] = null;
 		wp_safe_redirect(site_url('users'));
 	}
 	file_upload( $last_id );
@@ -106,19 +106,19 @@ function file_upload( $id ) {
 			require_once( ABSPATH . 'wp-admin/includes/image.php' );
 		}
 	} else {
-		$_SESSION['success'] = null;
-		$_SESSION['error']   = $upload['error'];
+		$_SESSION['armplugin']['success'] = null;
+		$_SESSION['armplugin']['error']   = $upload['error'];
 	}
 	$get_updated = wp_update_user( [
 		'ID'       => $id,
 		'user_url' => $upload['url']
 	] );
 	if ( is_wp_error( $get_updated ) ) {
-		$_SESSION['success'] = null;
-		$_SESSION['error']   = $get_updated->get_error_message();
+		$_SESSION['armplugin']['success'] = null;
+		$_SESSION['armplugin']['error']   = $get_updated->get_error_message();
 	} else {
-		$_SESSION['success'] = "updated";
-		$_SESSION['error']   = null;
+		$_SESSION['armplugin']['success'] = "updated";
+		$_SESSION['armplugin']['error']   = null;
 	}
 	wp_safe_redirect( site_url( 'users' ) );
 }
@@ -130,38 +130,30 @@ function file_upload( $id ) {
  * @return false|string
  */
 function show_table() {
-	if (isset($_SESSION['error'])){
-		?><script> alert( "<?php echo $_SESSION['error'] ?>") </script><?php
+	if (isset($_SESSION['armplugin']['error'])){
+		?><script> alert( "<?php echo $_SESSION['armplugin']['error'] ?>") </script><?php
 	}
-	else if(isset($_SESSION['success']))
+	else if(isset($_SESSION['armplugin']['success']))
 	{
-		?><script> alert( "<?php echo $_SESSION['success'] ?>") </script><?php
+		?><script> alert( "<?php echo $_SESSION['armplugin']['success'] ?>") </script><?php
 	}
 	session_destroy();
+//    echo '<pre>';
+//    print_r(count_users());
+//    echo '</pre>';
 
 	$current_page = $_GET['current'] ?? 0;
-	$row_count = (count_users()['total_users']);
-	$row_per_page = 4;
+	$row_count = count_users()['total_users'];
+	$row_per_page = 2;
 	$number_of_page = ceil($row_count / $row_per_page);
 	$initial_page = $current_page * $row_per_page;
 
-	$arr_from_db = json_decode(json_encode(get_users(array( 'offset' => $initial_page,
+    echo $number_of_page;
+    $arr_from_db = json_decode(json_encode(get_users(array( 'offset' => $initial_page,
 	                                                        'number' => $row_per_page,
 	                                                        'orderby' => 'ID',
 	))), true);
 
-	if ($current_page == 0){
-		$prev_pg_i = 0;
-		$next_pg_i = $prev_pg_i + 1;
-
-	}elseif($current_page == $number_of_page - 1){
-		$next_pg_i = $number_of_page - 1;
-		$prev_pg_i = $next_pg_i - 1;
-
-	}else{
-		$prev_pg_i = $current_page - 1;
-		$next_pg_i = $current_page + 1;
-	}
 	ob_start();
 	?>
     <div class="container m-0 p-0">
@@ -196,15 +188,14 @@ function show_table() {
             </div>
             <div class="row w-100  padding-left-10">
                 <form class="w-50 p-0" action="" method="get">
-                    <!--                        <input type="hidden" name="row" value="--><?php //echo $row; ?><!--">-->
-                    <!--                        <input type="hidden" name="count" value="--><?php //echo $count; ?><!--">-->
-                    <input type="submit" class="btn-primary" name="current" value="<?php echo $prev_pg_i?>">
+
+                    <input type="submit" class="btn-success" name="current" value="<?php echo $current_page == 0 ? 0 : ($current_page == ($number_of_page - 1) ? ($number_of_page - 2) : $current_page - 1)  ?>">
 					<?php
 					for ($i = 0; $i < $number_of_page; $i++){
 						?><input type="submit" class="btn-primary" name="current" value = '<?php echo $i?>'><?php
 					}
 					?>
-                    <input type="submit" class="btn-primary" name="current" value="<?php echo $next_pg_i?>">
+                    <input type="submit" class="btn-danger" name="current" value="<?php echo $current_page == 0 ? 1 : ($current_page == ($number_of_page - 1) ? ($number_of_page - 1) : $current_page + 1)?>">
                 </form>
             </div>
         </div>
@@ -278,16 +269,16 @@ function edit_func() {
 			'display_name' => $name
 		] );
 		if ( is_wp_error( $updated_user_data ) ) {
-			$_SESSION['error']   = 'Error' . $updated_user_data->get_error_message();
-			$_SESSION['success'] = null;
+			$_SESSION['armplugin']['error']   = 'Error' . $updated_user_data->get_error_message();
+			$_SESSION['armplugin']['success'] = null;
 		} else {
-			$_SESSION['success'] = 'updated successfully';
-			$_SESSION['error']   = null;
+			$_SESSION['armplugin']['success'] = 'updated successfully';
+			$_SESSION['armplugin']['error']   = null;
 		}
 		wp_safe_redirect( site_url( 'users' ) );
 	} else {
-		$_SESSION['error'] = 'name should be more that .....';
-        $_SESSION['success'] = null;
+		$_SESSION['armplugin']['error'] = 'name should be more that .....';
+        $_SESSION['armplugin']['success'] = null;
 	}
 }
 add_action( "admin_post_edit", "edit_func" );
