@@ -13,21 +13,28 @@ function start_session() {
 		session_start();
 	}
 }
-add_action( 'init', 'start_session' );
 
+add_action( 'init', 'start_session' );
 /**
  * this function for showing users login form
  *
  * @return false|string
  */
 function show_form() {
-//	$log_url = site_url( "mtp_user_registration" );
-    $login_nonce = wp_create_nonce('login_nonce');
-
+	if ( isset( $_SESSION['armplugin']['error'] ) ) {
+		?>
+        <script> alert("<?php echo esc_attr( $_SESSION['armplugin']['error'] ) ?>") </script><?php
+	} elseif ( isset( $_SESSION['armplugin']['success'] ) ) {
+		?>
+        <script> alert("<?php echo esc_attr( $_SESSION['armplugin']['success'] ) ?>") </script><?php
+	}
+	session_destroy();
+	$login_nonce = esc_attr( wp_create_nonce( 'login_nonce' ) );
 	ob_start();
 	?>
     <form method="post" id="form" enctype="multipart/form-data" action="<?php echo admin_url( 'admin-post.php' ) ?>">
         <input type="hidden" name="action" value="submit_btn">
+		<?php wp_referer_field(); ?>
         <div class="container">
             <div class="col">
                 <div class="row w-100 p-0">
@@ -57,52 +64,54 @@ function show_form() {
 	<?php
 	return ob_get_clean();
 }
-add_shortcode( "mtp_user_registration", "show_form" );
 
+add_shortcode( "mtp_user_registration", "show_form" );
 /**
  * this function is taking user data and adding it to db , after that call file_upload
  *
  * @return void
  */
 function add_db() {
-	global $wpdb;
-	$name     = sanitize_text_field( $_POST['name'] );
-	$password = sanitize_text_field( $_POST['password'] );
-	$email    = sanitize_email( $_POST['email'] );
-    $be_checked_nonce = $_POST['login_nonce'];
-    $js_be_checked_nonce = $_POST['js_login_nonce'];
 
-    if (isset($_POST['login_nonce']))
-        if(!wp_verify_nonce($be_checked_nonce, 'login_nonce'))
-            die('dont try to hack me');
-    if (isset($_POST['js_login_nonce']))
-        if(!wp_verify_nonce($js_be_checked_nonce, 'js_login_nonce'))
-            die('dont try to hack me');
-
-    if ( strlen( $name ) > 3 && strlen( $password ) > 5 && strlen( $email ) > 5 ) {
-        $last_id = wp_create_user( $name, $password, $email );
-        $_SESSION['armplugin']['success'] = "you are registered";
-        $_SESSION['armplugin']['error'] = null;
-    } else {
-        $last_id = null;
-        $_SESSION['armplugin']['error'] = "name should be more than 3 symbol, password 5, email 5";
-        $_SESSION['armplugin']['success'] = null;
-    }
-    wp_safe_redirect(site_url('users'));
-    file_upload( $last_id );
+	$refere              = wp_get_referer();
+	$name                = sanitize_text_field( $_POST['name'] ) ?? '';
+	$password            = sanitize_text_field( $_POST['password'] ) ?? '';
+	$email               = sanitize_email( $_POST['email'] ) ?? '';
+	$be_checked_nonce    = sanitize_text_field( $_POST['login_nonce'] ?? null );
+	$js_be_checked_nonce = sanitize_text_field( $_POST['js_login_nonce'] ?? null );
+	if ( isset( $_POST['login_nonce'] ) && ! wp_verify_nonce( $be_checked_nonce, 'login_nonce' ) && ! check_admin_referer( $referer ) ) {
+		die( '' );
+	}
+	if ( isset( $_POST['js_login_nonce'] ) && ! wp_verify_nonce( $js_be_checked_nonce, 'js_login_nonce' ) && ! check_admin_referer( $referer ) ) {
+		die( '' );
+	}
+	if ( strlen( $name ) > 3 && strlen( $password ) > 5 && strlen( $email ) > 5 ) {
+		$last_id                          = wp_create_user( $name, $password, $email );
+		$_SESSION['armplugin']['success'] = "you are registered";
+		$_SESSION['armplugin']['error']   = null;
+	} else {
+		$last_id                          = null;
+		$_SESSION['armplugin']['error']   = "name should be more than 3 symbol, password 5, email 5";
+		$_SESSION['armplugin']['success'] = null;
+	}
+	file_upload( $last_id, $refere );
 }
-add_action( "admin_post_submit_btn", "add_db" );
 
+add_action( "admin_post_submit_btn", "add_db" );
 /**
- *  this func is taking a last added user id , taking a file data and upload it in wp media ,
+ *  this func is taking a last added user id and link url where is come requests,
+ *  taking a file data and upload it in wp media ,
  *  after that changing user url to img url
  *
- * @param int $id
+ * @param   int     $id
+ * @param   string  $referer
  *
  * @return void
  */
-function file_upload( $id ) {
-	$upload = wp_upload_bits( $_FILES['image']['name'], null, file_get_contents( $_FILES['image']['tmp_name'] ) );
+function file_upload( int $id, string $referer ) {
+
+	$parsed_referer = wp_parse_url( $referer );
+	$upload         = wp_upload_bits( $_FILES['image']['name'], null, file_get_contents( $_FILES['image']['tmp_name'] ) );
 	if ( ! $upload['error'] ) {
 		$filename      = $upload['file'];
 		$wp_filetype   = wp_check_filetype( $filename );
@@ -131,7 +140,7 @@ function file_upload( $id ) {
 		$_SESSION['armplugin']['success'] = "updated";
 		$_SESSION['armplugin']['error']   = null;
 	}
-	wp_safe_redirect( site_url( 'users' ) );
+	wp_safe_redirect( site_url( $parsed_referer['path'] ) );
 }
 
 /**
@@ -141,30 +150,25 @@ function file_upload( $id ) {
  * @return false|string
  */
 function show_table() {
-	if (isset($_SESSION['armplugin']['error'])){
-		?><script> alert( "<?php echo $_SESSION['armplugin']['error'] ?>") </script><?php
-	}
-	else if(isset($_SESSION['armplugin']['success']))
-	{
-		?><script> alert( "<?php echo $_SESSION['armplugin']['success'] ?>") </script><?php
+	if ( isset( $_SESSION['armplugin']['error'] ) ) {
+		?>
+        <script> alert("<?php echo esc_attr( $_SESSION['armplugin']['error'] ) ?>") </script><?php
+	} elseif ( isset( $_SESSION['armplugin']['success'] ) ) {
+		?>
+        <script> alert("<?php echo esc_attr( $_SESSION['armplugin']['success'] ) ?>") </script><?php
 	}
 	session_destroy();
-//    echo '<pre>';
-//    print_r(count_users());
-//    echo '</pre>';
-
-	$current_page = $_GET['current'] ?? 0;
-	$row_count = count_users()['total_users'];
-	$row_per_page = 3;
-	$number_of_page = ceil($row_count / $row_per_page);
-	$initial_page = $current_page * $row_per_page;
-
-    echo $number_of_page;
-    $arr_from_db = json_decode(json_encode(get_users(array( 'offset' => $initial_page,
-	                                                        'number' => $row_per_page,
-	                                                        'orderby' => 'ID',
-	))), true);
-
+	$current_page   = ! empty( $_GET['current'] );
+	$row_count      = count_users()['total_users'];
+	$row_per_page   = 3;
+	$number_of_page = ceil( $row_count / $row_per_page );
+	$initial_page   = $current_page * $row_per_page;
+	echo $number_of_page;
+	$arr_from_db = json_decode( json_encode( get_users( array(
+		'offset'  => $initial_page,
+		'number'  => $row_per_page,
+		'orderby' => 'ID',
+	) ) ), true );
 	ob_start();
 	?>
     <div class="container m-0 p-0">
@@ -174,24 +178,21 @@ function show_table() {
                     <input type="hidden" name="action" value="edit_func">
                     <table class="table table-striped table-dark table-hover">
 						<?php
-						foreach ($arr_from_db as $key){
+						foreach ( $arr_from_db as $key ) {
 							?>
                             <tr>
-                                <td><?php echo esc_attr( $key[ 'data' ]['ID'] ) ?></td>
-                                <td><?php echo esc_attr( $key[ 'data' ]['display_name'] ) ?></td>
-                                <td><?php echo esc_attr( $key[ 'data' ]['user_email'] ) ?></td>
+                                <td><?php echo esc_attr( $key['data']['ID'] ?? '' ) ?></td>
+                                <td><?php echo esc_attr( $key['data']['display_name'] ?? '' ) ?></td>
+                                <td><?php echo esc_attr( $key['data']['user_email'] ?? '' ) ?></td>
                                 <td>
-                                    <input class="btn btn-hover btn-danger" type="submit" name="edit" value="<?php echo esc_attr( $key['data']['ID'] ) ?>">
+                                    <input class="btn btn-hover btn-danger" type="submit" name="edit" value="<?php echo esc_attr( $key['data']['ID'] ?? '' ) ?>">
                                 </td>
                                 <td>
-                                    <img src="<?php echo ( strlen( $key['data']['user_url'] ) > 0 ) ? esc_attr( $key['data']['user_url'] ) : 'http://localhost/wordpress/wp-content/uploads/2023/03/tomcat.jpg'
-									?>"
-                                         width="50"
-                                         height="50" sizes="" srcset="">
+                                    <img src="<?php echo ( strlen( esc_attr( $key['data']['user_url'] ) ) > 0 ) ? esc_attr( $key['data']['user_url'] ) : 'http://localhost/wordpress/wp-content/uploads/2023/03/tomcat
+                                    .jpg' ?>" width="50" height="50" sizes="" srcset="">
                                 </td>
                             </tr>
 							<?php
-							$last_id = esc_attr( $key[ 'data' ]['ID'] );
 						}
 						?>
                     </table>
@@ -200,13 +201,13 @@ function show_table() {
             <div class="row w-100  padding-left-10">
                 <form class="w-50 p-0" action="" method="get">
 
-                    <input type="submit" class="btn-success" name="current" value="<?php echo $current_page == 0 ? 0 : ($current_page == ($number_of_page - 1) ? ($number_of_page - 2) : $current_page - 1)  ?>">
+                    <input type="submit" class="btn-success" name="current" value="<?php echo $current_page == 0 ? 0 : ( $current_page == ( $number_of_page - 1 ) ? ( $number_of_page - 2 ) : $current_page - 1 ) ?>">
 					<?php
-					for ($i = 0; $i < $number_of_page; ++$i){
-						?><input type="submit" class="btn-primary" name="current" value = '<?php echo $i?>'><?php
+					for ( $i = 0; $i < $number_of_page; ++ $i ) {
+						?><input type="submit" class="btn-primary" name="current" value='<?php echo $i ?>'><?php
 					}
 					?>
-                    <input type="submit" class="btn-danger" name="current" value="<?php echo $current_page == 0 ? 1 : ($current_page == ($number_of_page - 1) ? ($number_of_page - 1) : $current_page + 1)?>">
+                    <input type="submit" class="btn-danger" name="current" value="<?php echo $current_page == 0 ? 1 : ( $current_page == ( $number_of_page - 1 ) ? ( $number_of_page - 1 ) : $current_page + 1 ) ?>">
                 </form>
             </div>
         </div>
@@ -214,20 +215,17 @@ function show_table() {
 	<?php
 	return ob_get_clean();
 }
-add_shortcode( "mtp_show_users", "show_table" );
 
+add_shortcode( "mtp_show_users", "show_table" );
 /**
- * this func take a edit id and generate a form basing a id,
+ * this func take an edit id and generate a form basing an id,
  * and sed a request admin-post
  *
  * @return false|string
  */
 function edit_short() {
 
-	$id_from_get = 0;
-	if ( isset( $_GET['edit'] ) ) {
-		$id_from_get = esc_attr( $_GET['edit'] );
-	}
+	$id_from_get = esc_attr( $_GET['edit'] ?? 0 );
 	ob_start(); ?>
     <form method="get" enctype="multipart/form-data" action="<?php echo admin_url( 'admin-post.php' ) ?>">
         <input type="hidden" name="action" value="edit">
@@ -258,20 +256,18 @@ function edit_short() {
 	<?php
 	return ob_get_clean();
 }
-add_shortcode( "mtp_edit_users", "edit_short" );
 
+add_shortcode( "mtp_edit_users", "edit_short" );
 /**
  * taking a changed user data and changing that
  *
  * @return void
  */
 function edit_func() {
-
-	global $wpdb;
-	$name     = sanitize_text_field( $_GET['name'] );
-	$password = sanitize_text_field( $_GET['password'] );
-	$email    = sanitize_email( $_GET['email'] );
-	$id       = sanitize_text_field( $_GET['id'] );
+	$name     = sanitize_text_field( $_GET['name'] ) ?? '';
+	$password = sanitize_text_field( $_GET['password'] ) ?? '';
+	$email    = sanitize_email( $_GET['email'] ) ?? '';
+	$id       = sanitize_text_field( $_GET['id'] ) ?? '';
 	if ( strlen( $name ) >= 3 && strlen( $password ) >= 5 && strlen( $email ) >= 5 ) {
 		get_userdata( $id );
 		$updated_user_data = wp_update_user( [
@@ -288,12 +284,12 @@ function edit_func() {
 		}
 		wp_safe_redirect( site_url( 'users' ) );
 	} else {
-		$_SESSION['armplugin']['error'] = 'name should be more that .....';
-        $_SESSION['armplugin']['success'] = null;
+		$_SESSION['armplugin']['error']   = 'name should be more that .....';
+		$_SESSION['armplugin']['success'] = null;
 	}
 }
-add_action( "admin_post_edit", "edit_func" );
 
+add_action( "admin_post_edit", "edit_func" );
 /**
  * this func for assets a script files and style files
  *
@@ -304,21 +300,19 @@ function js_script() {
 	wp_enqueue_script( 'custom_script', plugin_dir_url( __FILE__ ) . '/my_test_plugin.js', [ 'jquery' ] );
 	wp_localize_script( 'custom_script', 'MYSCRIPT', array(
 		'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-        'nonce' => wp_create_nonce('js_login_nonce')
+		'nonce'   => esc_attr( wp_create_nonce( 'js_login_nonce' ) )
 	) );
-
 	wp_enqueue_style( 'style', plugin_dir_url( __FILE__ ) . 'my_test_plugin.css' );
 	wp_enqueue_style( 'bootstrap', 'https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css' );
 }
-add_action( 'wp_enqueue_scripts', 'js_script' );
 
+add_action( 'wp_enqueue_scripts', 'js_script' );
 /**
  * for generating a registration form
  *
  * @return false|string
  */
 function mtp_js_user_registration() {
-//	$log_url = site_url( "mtp_user_registration" );
 	ob_start();
 	?>
     <form id="form" enctype="multipart/form-data">
@@ -345,10 +339,10 @@ function mtp_js_user_registration() {
 	<?php
 	return ob_get_clean();
 }
-add_shortcode( 'mtp_js_user_registration', 'mtp_js_user_registration' );
 
+add_shortcode( 'mtp_js_user_registration', 'mtp_js_user_registration' );
 /**
- * this func call a add_db func witch adding a users in db ,
+ * This func call a add_db func witch adding a users in db ,
  * after then when request are send
  *
  * @return void
@@ -356,6 +350,6 @@ add_shortcode( 'mtp_js_user_registration', 'mtp_js_user_registration' );
 function adding_with_js() {
 	add_db();
 }
-add_action( 'wp_ajax_my_ajax_request', 'adding_with_js' );
 
+add_action( 'wp_ajax_my_ajax_request', 'adding_with_js' );
 ?>
